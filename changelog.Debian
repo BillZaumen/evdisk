@@ -1,0 +1,6 @@
+evdist (1.0) unstable; urgency=low
+
+  * The package contains the initial version of evdisk
+    and its man page.
+
+ --  Bill Zaumen <bill.zaumen+evdisk@gmail.com>  Sun, 16 Apr 2017 20:00:00 -0700

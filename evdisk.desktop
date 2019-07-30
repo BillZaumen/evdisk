@@ -1,0 +1,12 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=EVDISK
+GenericName=Encrypted Virtual Filesystem Manager
+Comment=Create, mount and unmount an evdisk encrypted virtual file system
+Exec=evdisk
+TryExec=evdisk
+Terminal=false
+Type=Application
+Icon=/usr/share/icons/hicolor/scalable/apps/evdisk.svg
+Categories=System;Utility;
+StartupNotify=true

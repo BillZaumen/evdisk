@@ -1,0 +1,212 @@
+.TH EVDISK "1" "July 2019" "evdisk VERSION" "System Administration"
+.SH NAME
+.PP
+evdisk \- create or temporarily mount an encrypted virtual file system
+.SH SYNOPSIS
+.PP
+evdisk
+.br
+.B evdisk
+.I TARGET
+.br
+.B
+evdisk [\-s|\-\-size]
+.I SIZE\fB[M|G]\fI
+.B [\-r|\-\-recipient]
+.I GPG_KEYID
+.br
+\ \ \ \ \ \ 
+.B [\-u|\-\-urandom]
+.B [\-c|\-\-create]
+.I TARGET
+.br
+.B evdisk \-\-killAll
+.br
+.B
+evdisk \-\-help
+.SH DESCRIPTION
+The program
+.B evdisk
+provides an encrypted virtual file system service represented by a
+target directory containing a subdirectory named
+.B root
+that will be the file system's mount point, a file
+.B encrypted
+that contains the file system itself, and a file
+.B key.gpg
+that contains a LUKS key encrypted with gpg. The LUKS key is
+generated when the encrypted virtual file system is initialized using
+the
+.B \-\-create
+option described below. The LUKS key is 32 characters long and
+consists of random printable 7-bit ASCII characters.
+.PP
+Once the target directory
+.I TARGET
+is initialized, one can mount  the virtual file system by using
+the commands
+.br
+.B evdisk
+.br
+or
+.br
+.BR evdisk\ \fITARGET\fB .
+If
+.I TARGET
+is not provided, a dialog box will appear to ask the user to
+select a suitable directory.  Additional dialog boxes may
+appear asking for
+.B sudo
+passwords and/or
+.B gpg
+passphrases. Finally, a window will appear, first showing the
+text "Loading" and then a button that will allow the file system
+to be unmounted.  If
+.B evdisk
+is interrupted (e.g., by typing CONTROL-C when
+.B evdisk
+is being run from a terminal), the virtual file system will also be
+unmounted.
+.SH OPTIONS
+.PP
+With the
+.B \-c
+or
+.B \-\-create
+option, virtual file system will be create. The target directory must
+be provided and must exist. Once the
+.B evdisk
+command completes, the target directory will contain a subdirectory
+named
+.B root
+and two ordinary files named
+.B encrypted
+(which contains an encrypted file system) and
+.B key.gpg
+(which contains a LUKS key encrypted with GPG). The following options
+are applicable (all are mandatory, except for the
+.B \-u
+option):
+.TP
+.BI \-s\  SIZE
+.TQ
+.BI \-\-size\  SIZE
+This option determines the size of the file system.  The argument
+.I SIZE
+must be a positive integer followed immediately by
+.B M
+(Megabytes) or
+.B G 
+(Gigabytes). For example,
+.B 50M
+and
+.B 20G
+are valid sizes.  The values cooresponding to 1M and 1G are rounded up
+to the nearest power of 2 so that 1M is actually 1,048,576 bytes and
+1G is actually 1,073,741,824 bytes.
+.TP
+.BI \-r\  GPG_KEYID
+.TQ
+.BI \-\-recipient\  GPG_KEYID
+This option can appear multiple times, but must appear at least once.
+It provided an ID that names a GPG key in a form acceptable to the
+.B gpg
+command using its
+.B \-r
+option.
+.TP
+.B \-u
+.TQ
+.B \-\-urandom
+This option requests that the file that will contain an encrypted
+file system be initialized with random values obtained from
+.BR /dev/urandom .
+This option may result in very long running times for this command.
+It is redundant in cases such as a flash driving being formated
+using a similar option and immediately before
+.B evdisk
+is used to create a virtual file system. The result of this option,
+or its equivalent, is that the virtual file system will be more secure.
+.PP
+There are two remaining options, and for these, a target directory is
+not used:
+.TP
+.B \-\-killAll
+While
+.B evdisk
+will normally unmount file systems, and free loop devices, and remove
+unneeded /dev/mapper special files, if for some reason this fails
+the
+.B \-\-killAll
+option can be used to remove all evdisk file systems configured by
+the user. Such file systems are assumed to be owned by the user
+.I USER
+if they are located in
+.BR /media/ USER
+or if the corresponding target directory is owned by the user.
+.TP
+.B \-?
+.TQ
+.B \-\-help
+A summary of the command-line options will be printed.
+
+.SH USE CASES
+
+.SH EXAMPLE
+Suppose a flash drive was inserted and mounted at
+.BR /media/USER/DISK .
+The commands
+.RS
+.B
+mkdir /media/USER/DISK/Backup
+.br
+evdisk -s 8G -r USER_GPGID -u --create /media/USER/DISK/Backup
+.R
+.RE
+will create an 8 gigabyte encrypted ext4 virtual file system (the
+flash drive's file system must support files of the size requested - one
+might need an exfat or ext4 file system for a file of this size). To
+mount it, use the command
+.RS
+.B
+evdisk
+.R
+.RE
+(and select
+.B /media/USER/DISK/Backup
+when the first dialog box appears) or use the command
+.RS
+.B
+evdisk /media/USER/DISK/Backup
+.R
+.RE
+to explicitly provide the target directory.  The encrypted file
+system will be mounted at
+.BR /media/USER/DISK/Backup/root .
+Files in this file system are reasonably safe: you can take the
+disk with you and even if lost, someone would have to break GPG
+encryption to recover the key, and the keyring needed for decryption
+is not on the this disk.
+
+.SH AUTHOR
+Written by Bill Zaumen
+.SH COPYRIGHT
+Copyright \(co 2011 Bill Zaumen.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
+.br
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+.SH SEE ALSO
+.BR cryptsetup (1)
+.br
+.BR dd (1)
+.br
+.BR fallocate (1)
+.br
+.BR losetup (1)
+.br
+.BR mount (1)
+.br
+.BR umount (1)
+.br
+.BR sudo (1)

@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "configure" ]
+then
+	gtk-update-icon-cache --force /usr/share/icons/hicolor
+fi
+exit 0
