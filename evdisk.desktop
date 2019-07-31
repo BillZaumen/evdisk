@@ -9,4 +9,4 @@ Terminal=false
 Type=Application
 Icon=/usr/share/icons/hicolor/scalable/apps/evdisk.svg
 Categories=System;Utility;
-StartupNotify=true
+StartupNotify=false

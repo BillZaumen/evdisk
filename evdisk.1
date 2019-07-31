@@ -54,14 +54,30 @@ or
 If
 .I TARGET
 is not provided, a dialog box will appear to ask the user to
-select a suitable directory.  Additional dialog boxes may
+select a suitable directory. Otherwise
+.I TARGET
+is the target directory. Additional dialog boxes may
 appear asking for
 .B sudo
 passwords and/or
 .B gpg
-passphrases. Finally, a window will appear, first showing the
-text "Loading" and then a button that will allow the file system
-to be unmounted.  If
+passphrases. When
+.I TARGET
+is not provided,
+.B sudo
+passwords and
+.B gpg
+passphrases are not cached because
+.B evdisk
+was probably started by a desktop action, and multiple desktop actions
+can share the same tty or psuedotty.  In the GPG case, the GPG agent
+is killed immediately after the passphrase is provided, as this is the
+only way given the current design of preventing a passphrase from
+being cached. Ideally there should be a GPG option to request that a
+GPG agent not cache a passphrase, but such an option does not
+currently exist.  Finally, a window will appear, first showing the
+text "Loading" and then a button that will allow the file system to be
+unmounted.  If
 .B evdisk
 is interrupted (e.g., by typing CONTROL-C when
 .B evdisk

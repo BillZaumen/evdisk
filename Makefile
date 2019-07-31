@@ -2,8 +2,10 @@ VERSION = 1.0
 BINDIR = /usr/bin
 MANDIR = /usr/share/man
 DOCDIR = /usr/share/doc/evdisk
+ICONDIR = /usr/share/icons/hicolor
 
-SED_EVDISK = $(shell echo $(BINDIR)/evdisk  | sed  s/\\//\\\\\\\\\\//g)
+SED_EVDISK = $(shell echo $(BINDIR)/evdisk | sed  s/\\//\\\\\\\\\\//g)
+SED_ICONDIR =  $(shell echo $(ICONDIR) | sed  s/\\//\\\\\\\\\\//g)
 
 APPS_DIR = apps
 SYS_APPDIR = /usr/share/applications
@@ -20,12 +22,15 @@ TARGETICON_PNG = evdisk.png
 
 ICON_WIDTHS = 16 20 22 24 32 36 48 64 72 96 128 192 256
 
+# use 'make deb' first to set up the icons if those should be tested
 test:
 	rm -f evdisk
-	make BINDIR=$(shell pwd) evdisk
+	make BINDIR=$(shell pwd) \
+		ICONDIR=$(shell pwd)/BUILD/usr/share/icons/hicolor  evdisk
 
 evdisk: evdisk.sh
-	sed -e s/EVDISK/$(SED_EVDISK)/ evdisk.sh > evdisk
+	sed -e s/EVDISK/$(SED_EVDISK)/ evdisk.sh | \
+	sed -e s/ICONDIR/$(SED_ICONDIR)/ > evdisk
 	chmod u+x evdisk
 
 install: evdisk
@@ -59,7 +64,7 @@ DEB = evdisk_$(VERSION)_all.deb
 
 deb: $(DEB)
 
-$(DEB): control copyright changelog changelog.Debian \
+$(DEB): control copyright changelog changelog.Debian postinst postrm \
 		evdisk.sh evdisk.1 evdisk.desktop evdisk.svg Makefile
 	mkdir -p BUILD
 	(cd BUILD ; rm -rf usr DEBIAN)

@@ -31,6 +31,12 @@ public class EVDisk {
     // location of the evdisk program (e.g., /usr/bin/evdisk).
     private static String evdisk = "EVDISK";
 
+    // We need a directory where icons are stored so we get a
+    // meaningful one if we 'minimize' the window. This field
+    // must be set the correct directory (e.g., /usr/share/icons/hicolor)
+
+    private static String icondir = "ICONDIR";
+
     private static String createKey() {
 	SecureRandom rg = new SecureRandom();
 	StringBuilder sb = new StringBuilder();
@@ -693,7 +699,7 @@ public class EVDisk {
 	    // sudo will prompt for a password if needed.
 	    pb = (askpass == null)? new ProcessBuilder("sudo", "echo", "-n"):
 		new ProcessBuilder("sudo", "-A", "echo", "-n");
-	    if (askpass != null) {
+	    if (askpass != null && createFile) {
 		Map<String,String> env = pb.environment();
 		if (!env.containsKey("SUDO_ASKPASS")) {
 		    env.put("SUDO_ASKPASS", askpass);
@@ -760,7 +766,7 @@ public class EVDisk {
 		    ((askpass == null)?
 		     (new ProcessBuilder("sudo", evdisk,
 					 "--restartingWithSudo", target)):
-		     (new ProcessBuilder("sudo", "-A", evdisk,
+		     (new ProcessBuilder("sudo", "-A", "-k", evdisk,
 					 "--evdiskUsesGUI",
 					 "--restartingWithSudo", target)))
 		};
@@ -787,6 +793,12 @@ public class EVDisk {
 			System.err.println("evdisk: " + msg);
 		    }
 		    System.exit(1);
+		} else if (askpass != null) {
+		    pb = new ProcessBuilder("gpg-connect-agent", "reloadagent",
+					    "/bye");
+		    p = pb.start();
+		    p.waitFor();
+		    // no need to wait.
 		}
 		if (processes.get(1).waitFor() != 0) {
 		    String msg ="sudo evdisk \"" + target +"\" failed";
@@ -863,7 +875,7 @@ public class EVDisk {
 			int iconWidths[] = {16, 20, 22, 24, 32, 36, 48, 64,
 					    72, 96, 128, 192, 256};
 			for (int width: iconWidths) {
-			    String fname = "/usr/share/icons/hicolor/"
+			    String fname =  icondir + "/"
 				+ width + "x" + width + "/apps/evdisk.png";
 			    File f = new File(fname);
 			    if (f.isFile()) {
