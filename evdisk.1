@@ -30,7 +30,7 @@ The program
 provides an encrypted virtual file system service represented by a
 target directory containing a subdirectory named
 .B root
-that will be the file system's mount point, a file
+that will be the file system's mount point, a file named
 .B encrypted
 that contains the file system itself, and a file
 .B key.gpg
@@ -117,7 +117,7 @@ must be a positive integer followed immediately by
 .B 50M
 and
 .B 20G
-are valid sizes.  The values cooresponding to 1M and 1G are rounded up
+are valid sizes.  The values corresponding to 1M and 1G are rounded up
 to the nearest power of 2 so that 1M is actually 1,048,576 bytes and
 1G is actually 1,073,741,824 bytes.
 .TP
@@ -138,7 +138,7 @@ This option requests that the file that will contain an encrypted
 file system be initialized with random values obtained from
 .BR /dev/urandom .
 This option may result in very long running times for this command.
-It is redundant in cases such as a flash driving being formated
+It is redundant in cases such as a flash driving being formatted
 using a similar option and immediately before
 .B evdisk
 is used to create a virtual file system. The result of this option,
@@ -166,7 +166,26 @@ or if the corresponding target directory is owned by the user.
 .B \-\-help
 A summary of the command-line options will be printed.
 
-.SH USE CASES
+.SH USE CASE
+
+The primary use case is one in which a user wishes to keep a backup
+of a home directory, or some specific directories, on a flash drive
+that the user will carry at all times as an "emergency backup" in case
+the house literally burns down or everything in it is stolen. By
+using evdisk to set up an encrypted file system, there is little risk
+that any third party will be able to access the encrypted file system
+as such a third party will not have the GPG key ring needed to decrypt
+the key file
+.BR key.gpg .
+If there are trusted individuals who should be able to read the disk,
+if they have GPG keys, those can be used to set up
+.B key.gpg
+so that these particular individuals can mount the disk's file system.
+While one could keep backup copies of everything in a safe deposit
+box, going back and forth is time consuming: much more so than using
+a program such as
+.B rsync
+to keep the encrypted file system up to date.
 
 .SH EXAMPLE
 Suppose a flash drive was inserted and mounted at
@@ -201,28 +220,29 @@ system will be mounted at
 .BR /media/USER/DISK/Backup/root .
 Files in this file system are reasonably safe: you can take the
 disk with you and even if lost, someone would have to break GPG
-encryption to recover the key, and the keyring needed for decryption
+encryption to recover the key, and the key ring needed for decryption
 is not on the this disk.
 
 .SH AUTHOR
 Written by Bill Zaumen
 .SH COPYRIGHT
-Copyright \(co 2011 Bill Zaumen.
+Copyright \(co 2019 Bill Zaumen.
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
 .br
 This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law.
 .SH SEE ALSO
+.PP
 .BR cryptsetup (1)
-.br
 .BR dd (1)
-.br
 .BR fallocate (1)
-.br
+.BR gpg (1)
 .BR losetup (1)
-.br
 .BR mount (1)
-.br
 .BR umount (1)
-.br
 .BR sudo (1)
+
+\"  LocalWords:  EVDISK evdisk br fB fI GPG KEYID urandom killAll gpg
+\"  LocalWords:  subdirectory LUKS fITARGET sudo tty psuedotty TP TQ
+\"  LocalWords:  unmount decrypt rsync mkdir GPGID exfat Zaumen GPLv
+\"  LocalWords:  GPL cryptsetup fallocate losetup umount

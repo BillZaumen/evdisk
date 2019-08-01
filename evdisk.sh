@@ -694,31 +694,11 @@ public class EVDisk {
 	    }
 	}
 
-	if (noSudo) {
-	    // Run a command that will not really do anything so that
-	    // sudo will prompt for a password if needed.
-	    pb = (askpass == null)? new ProcessBuilder("sudo", "echo", "-n"):
-		new ProcessBuilder("sudo", "-A", "echo", "-n");
-	    if (askpass != null && createFile) {
-		Map<String,String> env = pb.environment();
-		if (!env.containsKey("SUDO_ASKPASS")) {
-		    env.put("SUDO_ASKPASS", askpass);
-		}
-		pb.redirectError(ProcessBuilder.Redirect.DISCARD);
-		pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
-	    } else {
-		pb.inheritIO();
-	    }
-	    p = pb.start();
-	    if (p.waitFor() != 0) {
-		System.exit(1);
-	    }
-	}
-
 	if (createFile) {
 	    if (noSudo) {
 		List<String>cmds = new ArrayList<String>();
 		cmds.add("sudo");
+		if (askpass != null) cmds.add("-A");
 		cmds.add(evdisk);
 		cmds.add("--restartingWithSudo");
 		for (String keyid: keyidList) {
@@ -731,19 +711,12 @@ public class EVDisk {
 		cmds.add("-c");
 		cmds.add(target);
 		pb = new ProcessBuilder(cmds);
-		for (String s: cmds) {
-		    System.out.print(s + " ");
+		if (askpass != null) {
+		    Map<String,String> env = pb.environment();
+		    if (!env.containsKey("SUDO_ASKPASS")) {
+			env.put("SUDO_ASKPASS", askpass);
+		    }
 		}
-		System.out.println();
-		/*
-		pb = fast?
-		    (new ProcessBuilder("sudo", evdisk, "--restartingWithSudo",
-					"-r", keyid, "-s", szString, "-c",
-					target)):
-		    (new ProcessBuilder("sudo", evdisk, "--restartingWithSudo",
-					"-r", keyid, "-s", szString, "-u",
-					"-c", target));
-		*/
 		pb.inheritIO();
 		p = pb.start();
 		System.exit(p.waitFor());
