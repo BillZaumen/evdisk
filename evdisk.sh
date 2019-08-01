@@ -144,7 +144,7 @@ public class EVDisk {
 	    (new InputStreamReader(is, "UTF-8"));
 	String ld = r.readLine();
 
-	System.out.println("... " +ld);
+	System.out.println(" ... loopback device is " + ld);
 	if (ld == null) {
 	    dataFile.delete();
 	    System.err.println("no loopback");
@@ -152,7 +152,7 @@ public class EVDisk {
 	}
 	
 	try {
-	    System.out.println(" creating key in file " + key);
+	    System.out.println(" ... creating key in file " + key);
 	    List<String>cmds = new ArrayList<String>();
 	    cmds.add("gpg");
 	    cmds.add("-e");
@@ -182,7 +182,7 @@ public class EVDisk {
 	    setOwnerGroup(key, targetDir);
 	    key.setReadOnly();
 
-	    System.out.println(".... creating LUKS format");
+	    System.out.println(" ... creating LUKS container");
 	    pb = new ProcessBuilder("cryptsetup", "-d", "-", "luksFormat",
 				    ld);
 	    p = pb.start();
@@ -200,7 +200,7 @@ public class EVDisk {
 		throw new Exception();
 	    }
 
-	    System.out.println("... Setting up mapper");
+	    System.out.println(" ... Setting up mapper");
 	    pb = new ProcessBuilder("cryptsetup", "-d", "-",
 				    "open", ld, mapperName);
 	    p = pb.start();
@@ -220,7 +220,7 @@ public class EVDisk {
 	    }
 
 	    try {
-		System.out.println("... creating ext4 ");
+		System.out.println(" ... creating ext4 ");
 		pb = new ProcessBuilder("mkfs.ext4",
 					"/dev/mapper/" + mapperName);
 		p = pb.start();
@@ -234,13 +234,13 @@ public class EVDisk {
 		}
 
 	    } finally {
-		System.out.println("... closing LUKS ");
+		System.out.println(" ... closing LUKS ");
 		pb = new ProcessBuilder("cryptsetup" , "close", mapperName);
 		pb.start();
 		p.waitFor();
 	    }
 	} finally {
-	    System.out.println("... deallocating loopback device " + ld);
+	    System.out.println(" ... deallocating loopback device " + ld);
 	    pb = new ProcessBuilder("losetup", "-d", ld);
 	    p = pb.start();
 	    p.waitFor();
