@@ -4,7 +4,7 @@
 evdisk \- create or temporarily mount an encrypted virtual file system
 .SH SYNOPSIS
 .PP
-evdisk
+.B evdisk
 .br
 .B evdisk
 .I TARGET
@@ -32,9 +32,10 @@ target directory containing a subdirectory named
 .B root
 that will be the file system's mount point, a file named
 .B encrypted
-that contains the file system itself, and a file
+that contains the file system itself (contained in an ordinary but
+encrypted file), and a file
 .B key.gpg
-that contains a LUKS key encrypted with gpg. The LUKS key is
+that contains a LUKS key encrypted with GPG. The LUKS key is
 generated when the encrypted virtual file system is initialized using
 the
 .B \-\-create
@@ -43,14 +44,19 @@ consists of random printable 7-bit ASCII characters.
 .PP
 Once the target directory
 .I TARGET
-is initialized, one can mount  the virtual file system by using
+is initialized, one can mount the virtual file system by using
 the commands
-.br
+.RS
+.PP
 .B evdisk
-.br
+.RE
+.PP
 or
-.br
-.BR evdisk\ \fITARGET\fB .
+.RS
+.PP
+.BI evdisk\  TARGET
+.RE
+.PP
 If
 .I TARGET
 is not provided, a dialog box will appear to ask the user to
@@ -59,30 +65,44 @@ select a suitable directory. Otherwise
 is the target directory. Additional dialog boxes may
 appear asking for
 .B sudo
-passwords and/or
-.B gpg
-passphrases. When
+passwords and/or GPG passphrases. For
+.B sudo
+passwords, the dialog box may have a title mentioning SSH, although
+the text will indicate that the password is for
+.BR sudo .
+When
 .I TARGET
 is not provided,
 .B sudo
-passwords and
-.B gpg
-passphrases are not cached because
+passwords are not cached because
 .B evdisk
-was probably started by a desktop action, and multiple desktop actions
-can share the same tty or psuedotty.  In the GPG case, the GPG agent
-is killed immediately after the passphrase is provided, as this is the
-only way given the current design of preventing a passphrase from
-being cached. Ideally there should be a GPG option to request that a
-GPG agent not cache a passphrase, but such an option does not
-currently exist.  Finally, a window will appear, first showing the
-text "Loading" and then a button that will allow the file system to be
-unmounted.  If
+with no arguments can be started by a desktop action, and multiple
+desktop actions can share the same tty or psuedotty.  The GPG
+passphrase will be cached (there is no reliable way to prevent this).
+To remove all passphrases, run the command
+.IP
+.B
+gpg-connect-agent reloadagent /bye
+.PP
+Reloading the agent can be done as soon as a window appears indicating
+that the virtual file system is being loaded or can be closed.
+.PP
+Regardless of how
 .B evdisk
-is interrupted (e.g., by typing CONTROL-C when
+is started, it will open a window. This window will initially contain
+some text indicating that an encrypted virtual file system is being
+loaded.  Once ready, the window will contain a 'close' button that
+will allow the encrypted virtual file system to be removed. This
+operation may fail if the file system is busy.  One should terminate
+processes that have opened any files in this file system or whose
+current working directory is a directory in this file system (this
+includes terminals), and then try again. If the window is closed by
+clicking on the appropriate control on the window's border, or if the
 .B evdisk
-is being run from a terminal), the virtual file system will also be
-unmounted.
+program is interrrupted (e.g., by typing CONTROL-C in its terminal
+window), the window may display text indicating the the file system
+is busy, and the program will wait until the file system is no longer
+busy before actually exiting.
 .SH OPTIONS
 .PP
 With the
@@ -152,7 +172,10 @@ While
 .B evdisk
 will normally unmount file systems, and free loop devices, and remove
 unneeded /dev/mapper special files, if for some reason this fails
-the
+(e.g., the process was stopped by sending it a SIGKILL signal),
+file systems may remain mounted, /dev/mapper files that are unneeded
+and unwanted may still exist, and loop devices may remain allocated.
+To handle this case, the
 .B \-\-killAll
 option can be used to remove all evdisk file systems configured by
 the user. Such file systems are assumed to be owned by the user
@@ -192,29 +215,32 @@ Suppose a flash drive was inserted and mounted at
 .BR /media/USER/DISK .
 The commands
 .RS
+.PP
 .B
 mkdir /media/USER/DISK/Backup
 .br
+.B
 evdisk -s 8G -r USER_GPGID -u --create /media/USER/DISK/Backup
-.R
 .RE
+.PP
 will create an 8 gigabyte encrypted ext4 virtual file system (the
 flash drive's file system must support files of the size requested - one
 might need an exfat or ext4 file system for a file of this size). To
 mount it, use the command
 .RS
-.B
-evdisk
-.R
+.PP
+.B evdisk
 .RE
+.PP
 (and select
 .B /media/USER/DISK/Backup
 when the first dialog box appears) or use the command
 .RS
+.PP
 .B
 evdisk /media/USER/DISK/Backup
-.R
 .RE
+.PP
 to explicitly provide the target directory.  The encrypted file
 system will be mounted at
 .BR /media/USER/DISK/Backup/root .
@@ -222,7 +248,45 @@ Files in this file system are reasonably safe: you can take the
 disk with you and even if lost, someone would have to break GPG
 encryption to recover the key, and the key ring needed for decryption
 is not on the this disk.
-
+.SH FILES
+.PP
+.BI /dev/loop N
+(where
+.I N
+is a small non-negative integer) provides a loopback device.
+.PP
+.BI /dev/mapper/evdisk\- PID
+(where
+.I PID
+is the process ID for the current
+.B evdisk
+process) provides the mapper device used to decrypt a LUKS file system.
+.PP
+.IB TARGET /root
+is the mount qpoint for the file system provided by
+.BR evdisk .
+.PP
+.IB TARGET /key.gpg
+contains a GPG encrypted LUKS key.
+.PP
+.IB TARGET /encrypted
+(where
+.I TARGET
+is the directory passed to
+.B evdisk
+as its final argument or the directory selected using a dialog box)
+contains an ordinary file storing the data for the file system that
+.B evdisk
+will provide.
+.SH EXIT STATUS
+.PP
+The exit codes are
+.TP
+0
+for normal termination.
+.TP
+1
+for abnormal termination.
 .SH AUTHOR
 Written by Bill Zaumen
 .SH COPYRIGHT
@@ -237,11 +301,12 @@ There is NO WARRANTY, to the extent permitted by law.
 .BR dd (1)
 .BR fallocate (1)
 .BR gpg (1)
+.BR locate (1)
 .BR losetup (1)
+.BR mlocate (1)
 .BR mount (1)
-.BR umount (1)
 .BR sudo (1)
-
+.BR umount (1)
 \"  LocalWords:  EVDISK evdisk br fB fI GPG KEYID urandom killAll gpg
 \"  LocalWords:  subdirectory LUKS fITARGET sudo tty psuedotty TP TQ
 \"  LocalWords:  unmount decrypt rsync mkdir GPGID exfat Zaumen GPLv

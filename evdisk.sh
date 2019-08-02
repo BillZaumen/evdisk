@@ -37,6 +37,9 @@ public class EVDisk {
 
     private static String icondir = "ICONDIR";
 
+    private static final int BUSY = 32;
+
+
     private static String createKey() {
 	SecureRandom rg = new SecureRandom();
 	StringBuilder sb = new StringBuilder();
@@ -176,8 +179,8 @@ public class EVDisk {
 	    os.close();
 	    if (p.waitFor() != 0) {
 		setOwnerGroup(dataFile, targetDir);
-		System.out.println("gpg failed");
-		throw new Exception();
+		System.err.println("gpg failed");
+		System.exit(1);
 	    }
 	    setOwnerGroup(key, targetDir);
 	    key.setReadOnly();
@@ -197,7 +200,7 @@ public class EVDisk {
 		p.waitFor();
 		dataFile.delete();
 		System.out.println("LUKS formatting failed");
-		throw new Exception();
+		System.exit(1);
 	    }
 
 	    System.out.println(" ... Setting up mapper");
@@ -215,8 +218,8 @@ public class EVDisk {
 		p = pb.start();
 		p.waitFor();
 		dataFile.delete();
-		System.out.println("Cannot set up mapper");
-		throw new Exception();
+		System.err.println("Cannot set up mapper");
+		System.exit(1);
 	    }
 
 	    try {
@@ -229,10 +232,9 @@ public class EVDisk {
 		    p = pb.start();
 		    p.waitFor();
 		    dataFile.delete();
-		    System.out.println("cannot create an ext4 file system");
-		    throw new Exception();
+		    System.err.println("cannot create an ext4 file system");
+		    System.exit(1);
 		}
-
 	    } finally {
 		System.out.println(" ... closing LUKS ");
 		pb = new ProcessBuilder("cryptsetup" , "close", mapperName);
@@ -253,19 +255,22 @@ public class EVDisk {
 	}
     }
 
-    private static boolean closeCalled = false;
+    private static boolean closeSucceeded = false;
 
-    private static void close(File dataDir, String ld, File dataFile)
+    private static boolean close(File dataDir, String ld, File dataFile)
 	throws Exception
     {
-	if (closeCalled) return;
-	closeCalled = true;
+	if (closeSucceeded) return true;
 	ProcessBuilder pb;
 	Process p;
 	if (dataDir != null) {
 	    pb = new ProcessBuilder("umount", dataDir.getCanonicalPath());
 	    p = pb.start();
-	    p.waitFor();
+	    int status = p.waitFor();
+	    if (status == BUSY) {
+		// still mounted?
+		return false;
+	    }
 	}
 	pb = new ProcessBuilder("cryptsetup", "close", mapperName);
 	p = pb.start();
@@ -276,6 +281,8 @@ public class EVDisk {
 	    p.waitFor();
 	}
 	dataFile.setReadOnly();
+	closeSucceeded = true;
+	return true;
     }
 
     private static JButton openButton = null;
@@ -383,14 +390,34 @@ public class EVDisk {
     }
 
     private static String findSSHAskPass() throws IOException {
+	// would prefer not to depend on locate to find this
+	// program.
+	File f = new File("/usr/libexec/seahorse/ssh-askpass");
+	if (f.canExecute()) {
+	    return f.getCanonicalPath();
+	}
+
 	ProcessBuilder pb = new ProcessBuilder("locate", "/ssh-askpass");
 	Process p = pb.start();
 	BufferedReader rd = new BufferedReader
 	    (new InputStreamReader(p.getInputStream(), "UTF-8"));
 	String line;
 	while ((line = rd.readLine()) != null) {
+	    if (!(line.startsWith("/bin/") ||
+		  line.startsWith("/sbin/") ||
+		  line.startsWith("/usr/lib/") ||
+		  line.startsWith("/usr/libexec/") ||
+		  line.startsWith("/usr/bin") ||
+		  line.startsWith("/usr/local/bin") ||
+		  line.startsWith("/usr/local/lib"))) {
+		// Skip files that are not in a reasonable location
+		continue;
+	    }
 	    if (line.endsWith("/ssh-askpass")) {
-		return line;
+		f = new File(line.trim());
+		if (f.canExecute()) {
+		    return line;
+		}
 	    }
 	}
 	return null;
@@ -401,6 +428,12 @@ public class EVDisk {
     static JPanel topPanel = null;
     static String ld = null;
     static boolean useGUI = false;
+    static javax.swing.Timer timer = null;
+    // globally available for shutdown
+    static boolean showClosing = false;
+    static File dataFile = null;
+    static File dataDir = null;
+    static File targetDir = null;
 
     private static void killAll() throws Exception {
 	// use if the process was aborted due to a terminal closing
@@ -493,7 +526,6 @@ public class EVDisk {
 	    File parent = encrypted.getParentFile();
 	    File root = new File(parent, "root");
 	    File key = new File(parent, "key.gpg");
-	    
 	    boolean ours = false;
 	    String path = parent.getCanonicalPath();
 	    if (path.startsWith(mediaDir)) {
@@ -570,7 +602,7 @@ public class EVDisk {
 	    } else if (argv[ind].equals("--evdiskUsesGUI")) {
 		useGUI = true;
 	    } else if (argv[ind].equals("--size")
-		|| argv[ind].equals("-s")) {
+		       || argv[ind].equals("-s")) {
 		ind++;
 		szString = argv[ind].trim();
 		try {
@@ -579,7 +611,7 @@ public class EVDisk {
 			gigabytes = false;
 		    } else if (!arg.endsWith("G")) {
 			System.err.println("Could not parse \"" + argv[ind]
-				       + "\" - expecting a size");
+					   + "\" - expecting a size");
 			System.exit(1);
 		    }
 		    sz = Integer.parseInt(arg.substring(0, arg.length()-1));
@@ -722,11 +754,12 @@ public class EVDisk {
 		System.exit(p.waitFor());
 	    } else {
 		create(target, sz, gigabytes, keyidList, fast);
+		System.exit(0);
 	    }
 	} else {
-	    File targetDir = new File(target);
-	    final File dataFile = new File(targetDir, "encrypted");
-	    final File dataDir = new File(targetDir, "root");
+	    targetDir = new File(target);
+	    dataFile = new File(targetDir, "encrypted");
+	    dataDir = new File(targetDir, "root");
 	    File key = new File(targetDir, "key.gpg");
 	    dataFile.setReadable(true);
 	    dataFile.setWritable(true);
@@ -766,13 +799,17 @@ public class EVDisk {
 			System.err.println("evdisk: " + msg);
 		    }
 		    System.exit(1);
-		} else if (askpass != null) {
-		    pb = new ProcessBuilder("gpg-connect-agent", "reloadagent",
-					    "/bye");
-		    p = pb.start();
-		    p.waitFor();
-		    // no need to wait.
-		}
+		}/* else if (askpass != null) {
+		 // A test indicates that gpg-agent always remembers
+		 // one's passphrase and makes it available to every
+		 // terminal, and possibly all processes.
+		 pb = new ProcessBuilder("gpg-connect-agent", "reloadagent",
+		 "/bye");
+		 p = pb.start();
+		 p.waitFor();
+		 // no need to wait.
+		 }
+		 */
 		if (processes.get(1).waitFor() != 0) {
 		    String msg ="sudo evdisk \"" + target +"\" failed";
 		    if (useGUI) {
@@ -786,171 +823,218 @@ public class EVDisk {
 		}
 		System.exit(0);
 	    }
+	}
 
-	    SwingUtilities.invokeLater(()-> {
-		    JPanel loadPanel = new JPanel(new FlowLayout());
-		    JLabel loadLabel = new JLabel("Loading ...");
-		    loadPanel.add(loadLabel);
+	//
+	// Code running using sudo.
+	//
+
+	timer = new javax.swing.Timer(2000, (ae) -> {
+		try {
+		    if (close(dataDir, ld, dataFile)) {
+			timer.stop();
+			System.exit(0);
+		    } else {
+			if (showClosing) {
+			    topPanelCL.show(topPanel, "closing");
+			}
+		    }
+		} catch (Exception e) {
+		    timer.stop();
+		    System.exit(1);
+		}
+	});
+
+	SwingUtilities.invokeLater(()-> {
+		JPanel loadPanel = new JPanel(new FlowLayout());
+		JLabel loadLabel = new JLabel("Loading ...");
+		loadPanel.add(loadLabel);
 		    
-		    JPanel panel = new JPanel(new FlowLayout());
-		    JLabel label = new
-			JLabel("<html>Close when directory <br>"
-			       + " no longer needed</html>");
-		    JButton button = new JButton("Close");
-		    panel.add(label);
-		    panel.add(button);
-		    button.addActionListener((event) -> {
-			    try {
-				close(dataDir, ld, dataFile);
-			    } catch (Exception e) {
-				String msg = "close failed";
-				if (useGUI) {
-				    JOptionPane.showMessageDialog
-					(frame, msg, "EVDisk Error",
-					 JOptionPane.ERROR_MESSAGE);
-				} else {
-				    System.err.println("evdisk: " + msg);
-				}
-				System.exit(1);
-			    } finally {
+		JPanel panel = new JPanel(new FlowLayout());
+		JLabel label = new
+		    JLabel("<html>Close when directory <br>"
+			   + " no longer needed</html>");
+		JButton button = new JButton("Close");
+		panel.add(label);
+		panel.add(button);
+		button.addActionListener((event) -> {
+			try {
+			    if(!close(dataDir, ld, dataFile)) {
+				String msg = "Close failed: "
+				    + dataDir.toString()
+				    + " busy";
+				JOptionPane.showMessageDialog
+				    (frame, msg, "EVDisk Error",
+				     JOptionPane.ERROR_MESSAGE);
+			    } else {
 				System.exit(0);
 			    }
-			});
-		    try {
-			frame = new JFrame("EVDisk");
-			topPanelCL = new CardLayout();
-			topPanel = new JPanel(topPanelCL);
-			topPanel.add(loadPanel, "load");
-			topPanel.add(panel, "close");
-			topPanelCL.show(topPanel, "load");
-			frame.setContentPane(topPanel);
-			frame.addWindowListener(new WindowAdapter() {
-				public void windowClosing(WindowEvent e) {
-				    try {
-					close(dataDir, ld, dataFile);
-				    } catch (Exception ee) {
-					String msg = "close failed";
-					if (useGUI) {
-					    JOptionPane.showMessageDialog
-						(frame, msg, "EVDisk Error",
-						 JOptionPane.ERROR_MESSAGE);
-					} else {
-					    System.err.println("evdisk: "
-							       + msg);
-					}
-					System.exit(1);
-				    } finally {
-					System.exit(0);
-				    }
-				}
-			    });
-			List<Image> iconList = new LinkedList<Image>();
-			int iconWidths[] = {16, 20, 22, 24, 32, 36, 48, 64,
-					    72, 96, 128, 192, 256};
-			for (int width: iconWidths) {
-			    String fname =  icondir + "/"
-				+ width + "x" + width + "/apps/evdisk.png";
-			    File f = new File(fname);
-			    if (f.isFile()) {
-				URL url = f.toURI().toURL();
-				Image imageIcon =
-				    (new ImageIcon(url)).getImage();
-				iconList.add(imageIcon);
+			} catch (Exception e) {
+			    String msg = "close failed";
+			    if (useGUI) {
+				JOptionPane.showMessageDialog
+				    (frame, msg, "EVDisk Error",
+				     JOptionPane.ERROR_MESSAGE);
+			    } else {
+				System.err.println("evdisk: " + msg);
 			    }
+			    System.exit(1);
 			}
-			if (iconList.size() > 0) {
-			    frame.setIconImages(iconList);
+		    });
+		JPanel closingPanel = new JPanel(new FlowLayout());
+		JLabel closingLabel = new JLabel("Closing: "
+						 + targetDir.getName()
+						 + "/root is busy");
+		closingPanel.add(closingLabel);
+		try {
+		    frame = new JFrame("EVDisk");
+		    topPanelCL = new CardLayout();
+		    topPanel = new JPanel(topPanelCL);
+		    topPanel.add(loadPanel, "load");
+		    topPanel.add(panel, "close");
+		    topPanel.add(closingPanel, "closing");
+		    showClosing = true;
+		    topPanelCL.show(topPanel, "load");
+		    frame.setContentPane(topPanel);
+		    frame.addWindowListener(new WindowAdapter() {
+			    public void windowClosing(WindowEvent e) {
+				try {
+				    timer.start();
+				} catch (Exception ee) {
+				    String msg = "close failed";
+				    if (useGUI) {
+					JOptionPane.showMessageDialog
+					    (frame, msg, "EVDisk Error",
+					     JOptionPane.ERROR_MESSAGE);
+				    } else {
+					System.err.println("evdisk: "
+							   + msg);
+				    }
+				    System.exit(1);
+				}
+			    }
+			});
+		    List<Image> iconList = new LinkedList<Image>();
+		    int iconWidths[] = {16, 20, 22, 24, 32, 36, 48, 64,
+					72, 96, 128, 192, 256};
+		    for (int width: iconWidths) {
+			String fname =  icondir + "/"
+			    + width + "x" + width + "/apps/evdisk.png";
+			File f = new File(fname);
+			if (f.isFile()) {
+			    URL url = f.toURI().toURL();
+			    Image imageIcon =
+				(new ImageIcon(url)).getImage();
+			    iconList.add(imageIcon);
 			}
-			frame.pack();
-			frame.setVisible(true);
-		    } catch (Exception e) {
-			System.err.println("could not start GUI");
-			System.exit(1);
 		    }
-		});
-	    //
-	    // Code running using sudo.
-	    // 
-	    Runtime.getRuntime().addShutdownHook(new Thread(()-> {
-			try {
-			    close(dataDir, ld, dataFile);
-			} catch (Exception any)  {}
-	    }));
-	    dataFile.setReadable(true);
-	    dataFile.setWritable(true);
-	    pb = new ProcessBuilder("losetup", "-f", "--show",
-				    dataFile.getCanonicalPath());
-	    pb.redirectError(ProcessBuilder.Redirect.INHERIT);
-	    p = pb.start();
-	    InputStream is = p.getInputStream();
-	    if (p.waitFor() != 0) {
-		dataFile.setReadOnly();
-		String msg = "could not set up loopback device";
-		if (useGUI) {
-		    JOptionPane.showMessageDialog(frame, msg, "EVDisk Error",
-						  JOptionPane.ERROR_MESSAGE);
-		} else {
-		    System.err.println("evdisk: " + msg);
+		    if (iconList.size() > 0) {
+			frame.setIconImages(iconList);
+		    }
+		    frame.pack();
+		    frame.setDefaultCloseOperation
+			(WindowConstants.DO_NOTHING_ON_CLOSE);
+		    frame.setVisible(true);
+		} catch (Exception e) {
+		    System.err.println("could not start GUI");
+		    System.exit(1);
 		}
-		System.exit(1);
-	    }
-	    BufferedReader r = new BufferedReader
-		(new InputStreamReader(is, "UTF-8"));
-	    ld = r.readLine();
-	    if (ld == null) {
-		dataFile.setReadOnly();
-		String msg = "no loopback device found";
-		if (useGUI) {
-		    JOptionPane.showMessageDialog(frame, msg, "EVDisk Error",
-						  JOptionPane.ERROR_MESSAGE);
-		} else {
-		    System.err.println("evdisk: " + msg);
-		}
-		System.exit(1);
-	    }
+	    });
 
-	    pb = new ProcessBuilder("cryptsetup", "-d", "-",
-				    "open", ld, mapperName);
-	    pb.inheritIO();
-	    p = pb.start();
-	    File mapperFile = new File("/dev/mapper/" + mapperName);
-	    if (p.waitFor() != 0 || !mapperFile.exists()) {
-		pb = new ProcessBuilder("losetup", "-d", ld);
-		p = pb.start();
-		p.waitFor();
-		dataFile.setReadOnly();
-		if (!mapperFile.exists()) {
-		    System.err.println("evdisk: no mapper created");
-		}
-		String msg = "'cryptsetup open' failed";
-		if (useGUI) {
-		    JOptionPane.showMessageDialog(frame, msg, "EVDisk Error",
-						  JOptionPane.ERROR_MESSAGE);
-		} else {
-		    System.err.println("evdisk: " + msg);
-		}
-		System.exit(1);
-	    }
 
-	    pb = new ProcessBuilder("mount", "/dev/mapper/" + mapperName,
-				    dataDir.getCanonicalPath());
-	    pb.inheritIO();
-	    p = pb.start();
-	    if (p.waitFor() != 0) {
-		String msg = "mount failed";
-		if (useGUI) {
-		    JOptionPane.showMessageDialog(frame, msg, "EVDisk Error",
-						  JOptionPane.ERROR_MESSAGE);
-		} else {
-		    System.err.println("evdisk: " + msg);
-		}
-		close(dataDir, ld, dataFile);
-		System.exit(1);
+	Runtime.getRuntime().addShutdownHook(new Thread(()-> {
+		    try {
+			boolean firstTime = true;
+			while (!close(dataDir, ld, dataFile)) {
+			    if (firstTime == true) {
+				SwingUtilities.invokeLater(() -> {
+					topPanelCL.show(topPanel, "closing");
+				    });
+				firstTime = false;
+			    }
+			    Thread.currentThread().sleep(2000L);
+			}
+		    } catch (Exception any)  {}
+	}));
+
+
+	dataFile.setReadable(true);
+	dataFile.setWritable(true);
+	pb = new ProcessBuilder("losetup", "-f", "--show",
+				dataFile.getCanonicalPath());
+	pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+	p = pb.start();
+	InputStream is = p.getInputStream();
+	if (p.waitFor() != 0) {
+	    dataFile.setReadOnly();
+	    String msg = "could not set up loopback device";
+	    if (useGUI) {
+		JOptionPane.showMessageDialog(frame, msg, "EVDisk Error",
+					      JOptionPane.ERROR_MESSAGE);
+	    } else {
+		System.err.println("evdisk: " + msg);
 	    }
-	    
-	    SwingUtilities.invokeLater(() -> {
-		    topPanelCL.show(topPanel, "close");
-		});
+	    System.exit(1);
 	}
+	BufferedReader r = new BufferedReader
+	    (new InputStreamReader(is, "UTF-8"));
+	ld = r.readLine();
+	if (ld == null) {
+	    dataFile.setReadOnly();
+	    String msg = "no loopback device found";
+	    if (useGUI) {
+		JOptionPane.showMessageDialog(frame, msg, "EVDisk Error",
+					      JOptionPane.ERROR_MESSAGE);
+	    } else {
+		System.err.println("evdisk: " + msg);
+	    }
+	    System.exit(1);
+	}
+
+	pb = new ProcessBuilder("cryptsetup", "-d", "-",
+				"open", ld, mapperName);
+	pb.inheritIO();
+	p = pb.start();
+	File mapperFile = new File("/dev/mapper/" + mapperName);
+	if (p.waitFor() != 0 || !mapperFile.exists()) {
+	    pb = new ProcessBuilder("losetup", "-d", ld);
+	    p = pb.start();
+	    p.waitFor();
+	    dataFile.setReadOnly();
+	    if (!mapperFile.exists()) {
+		System.err.println("evdisk: no mapper created");
+	    }
+	    String msg = "'cryptsetup open' failed";
+	    if (useGUI) {
+		JOptionPane.showMessageDialog(frame, msg, "EVDisk Error",
+					      JOptionPane.ERROR_MESSAGE);
+	    } else {
+		System.err.println("evdisk: " + msg);
+	    }
+	    System.exit(1);
+	}
+
+	pb = new ProcessBuilder("mount", "/dev/mapper/" + mapperName,
+				dataDir.getCanonicalPath());
+	pb.inheritIO();
+	p = pb.start();
+	if (p.waitFor() != 0) {
+	    String msg = "mount failed";
+	    if (useGUI) {
+		JOptionPane.showMessageDialog(frame, msg, "EVDisk Error",
+					      JOptionPane.ERROR_MESSAGE);
+	    } else {
+		System.err.println("evdisk: " + msg);
+	    }
+	    // nothing was mounted, so there is no mount point
+	    // to be 'busy'.
+	    close(dataDir, ld, dataFile);
+	    System.exit(1);
+	}
+
+	SwingUtilities.invokeLater(() -> {
+		topPanelCL.show(topPanel, "close");
+	    });
+
     }
 }

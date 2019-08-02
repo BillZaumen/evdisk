@@ -3,7 +3,7 @@ Version: VERSION
 Section: contrib/admin
 Priority: optional
 Architecture: all
-Depends: cryptsetup-bin (>= 2:2.1.0), mount (>= 2.33.1), gpg (>= 2.2.12), gpgconf (>= 2.2.12), sudo (>=1.8.27), util-linux (>= 2.33.1), coreutils (>= 8.30), default-jdk
+Depends: cryptsetup-bin (>= 2:2.1.0), mount (>= 2.33.1), gpg (>= 2.2.12), gpgconf (>= 2.2.12), sudo (>=1.8.27), util-linux (>= 2.33.1), coreutils (>= 8.30), default-jdk, mlocate (>= 0.26), psmisc (>= 23.2)
 Recommends: exfat-fuse, exfat-utils
 Maintainer: Bill Zaumen <bill.zaumen+software@gmail.com>
 Description:Utility that provides an encrypted virtual disk
