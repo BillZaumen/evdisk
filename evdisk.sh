@@ -87,7 +87,8 @@ public class EVDisk {
 
 
     private static void create(String targetDirName, int sz, boolean gigabytes,
-			       List<String> keyidList, boolean fast)
+			       List<String> keyidList, String type,
+			       boolean fast)
 	throws Exception
     {
 	File targetDir = new File(targetDirName);
@@ -95,6 +96,13 @@ public class EVDisk {
 	File dataDir = new File(targetDir, "root");
 	File key = new File(targetDir, "key.gpg");
 	String szString = sz + (gigabytes? "G": "M");
+	System.out.println("type = " + type);
+	String mkfs =  (type == null)? "/sbin/mkfs": "/sbin/mkfs." + type;
+	File mkfsFile =  new File(mkfs);
+	if (!mkfsFile.canExecute()) {
+	    System.err.println("File System format not known");
+	    System.exit(1);
+	}
 
 	if (!targetDir.exists()) {
 	    System.err.println("target directory does not exist");
@@ -223,16 +231,19 @@ public class EVDisk {
 	    }
 
 	    try {
-		System.out.println(" ... creating ext4 ");
-		pb = new ProcessBuilder("mkfs.ext4",
-					"/dev/mapper/" + mapperName);
+		System.out.println(" ... creating the"
+				   + ((type == null)? "": " " + type)
+				   + " file system");
+		pb = new ProcessBuilder(mkfs, "/dev/mapper/" + mapperName);
 		p = pb.start();
 		if (p.waitFor() != 0) {
 		    pb = new ProcessBuilder("losetup", "-d", ld);
 		    p = pb.start();
 		    p.waitFor();
 		    dataFile.delete();
-		    System.err.println("cannot create an ext4 file system");
+		    System.err.println("cannot create "
+				       + ((type == null)? "a":
+					  "an ext4") + " file system");
 		    System.exit(1);
 		}
 	    } finally {
@@ -590,10 +601,15 @@ public class EVDisk {
 	boolean noSudo = true;
 	String askpass = null;
 	boolean killAll = false;
+	String type = null;
 
 	while (ind < argv.length && argv[ind].startsWith("-")) {
 	    if (argv[ind].equals("--recipient") || argv[ind].equals("-r")) {
 		ind++;
+		if (ind == argv.length) {
+		    System.err.println("evdisk: too few arguments");
+		    System.exit(1);
+		}
 		// keyid = argv[ind];
 		keyidList.add(argv[ind]);
 	    } else if (argv[ind].equals("--restartingWithSudo")) {
@@ -604,6 +620,10 @@ public class EVDisk {
 	    } else if (argv[ind].equals("--size")
 		       || argv[ind].equals("-s")) {
 		ind++;
+		if (ind == argv.length) {
+		    System.err.println("evdisk: too few arguments");
+		    System.exit(1);
+		}
 		szString = argv[ind].trim();
 		try {
 		    String arg = argv[ind];
@@ -623,6 +643,14 @@ public class EVDisk {
 	    } else if (argv[ind].equals("--create")
 		       || argv[ind].equals("-c")) {
 		createFile = true;
+	    } else if (argv[ind].equals("--type") || argv[ind].equals("-t")) {
+		ind++;
+		if (ind == argv.length) {
+		    System.err.println("evdisk: too few arguments");
+		    System.exit(1);
+		}
+		type = argv[ind];
+		System.out.println("setting type to " + type);
 	    } else if (argv[ind].equals("--urandom")
 		       || argv[ind].equals("-u")) {
 		fast = false;
@@ -649,6 +677,21 @@ public class EVDisk {
 		System.out.println("       by the -c option. Multiple"
 				   + " -r options may be");
 		System.out.println("      provided.");
+		System.out.println("    -t or --type provides the file-system"
+				   + "  type. Valid");
+		System.out.println("       types can be found by running"
+				   + " the command");
+		System.out.println();
+		System.out.println("           ls /sbin/mkfs.*");
+		System.out.println();
+		System.out.println("       The strings after the period"
+				   + " are the types.");
+		System.out.println("       Do not use cramfs. The most"
+				   + " useful types");
+		System.out.println("       are ext4, vfat, and exfat.");
+		System.out.println("       If no type is specified, the"
+				   + " default for");
+		System.out.println("       mkfs will be used.");
 		System.out.println("    -u or --urandom indicates that"
 				   + " /dev/urandom should");
 		System.out.println("        be used to initialize the"
@@ -708,7 +751,6 @@ public class EVDisk {
 	    target = argv[ind];
 	}
 
-
 	if (killAll) {
 	    // we can use sudo directly as this is a fast operation. 
 	    killAll();
@@ -740,6 +782,10 @@ public class EVDisk {
 		cmds.add("-s");
 		cmds.add(szString);
 		if (fast == false) cmds.add("-u");
+		if (type != null) {
+		    cmds.add("-t");
+		    cmds.add(type);
+		}
 		cmds.add("-c");
 		cmds.add(target);
 		pb = new ProcessBuilder(cmds);
@@ -753,7 +799,7 @@ public class EVDisk {
 		p = pb.start();
 		System.exit(p.waitFor());
 	    } else {
-		create(target, sz, gigabytes, keyidList, fast);
+		create(target, sz, gigabytes, keyidList, type, fast);
 		System.exit(0);
 	    }
 	} else {
@@ -1013,7 +1059,7 @@ public class EVDisk {
 	    }
 	    System.exit(1);
 	}
-
+m
 	pb = new ProcessBuilder("mount", "/dev/mapper/" + mapperName,
 				dataDir.getCanonicalPath());
 	pb.inheritIO();

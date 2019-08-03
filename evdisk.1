@@ -46,16 +46,12 @@ Once the target directory
 .I TARGET
 is initialized, one can mount the virtual file system by using
 the commands
-.RS
 .PP
-.B evdisk
-.RE
-.PP
+.B \ \ \ \ \ \ evdisk
+.br
 or
-.RS
-.PP
-.BI evdisk\  TARGET
-.RE
+.br
+.BI \ \ \ \ \ \ evdisk\  TARGET
 .PP
 If
 .I TARGET
@@ -99,7 +95,7 @@ current working directory is a directory in this file system (this
 includes terminals), and then try again. If the window is closed by
 clicking on the appropriate control on the window's border, or if the
 .B evdisk
-program is interrrupted (e.g., by typing CONTROL-C in its terminal
+program is interrupted (e.g., by typing CONTROL-C in its terminal
 window), the window may display text indicating the the file system
 is busy, and the program will wait until the file system is no longer
 busy before actually exiting.
@@ -150,6 +146,40 @@ It provided an ID that names a GPG key in a form acceptable to the
 command using its
 .B \-r
 option.
+.TP
+.BI \-t\  TYPE
+.TQ
+.BI \-\-type\  TYPE
+The argument
+.I TYPE
+is the file system type. Valid types can be found by typing
+the command
+.RS
+.IP
+ls /sbin/mkfs.*
+.RE
+.IP
+and using a suffix (what follows a period) as the type. The
+most useful values are
+.BR ext2 ,
+.BR ext3 ,
+and
+.BR ext4 .
+The type
+.B cramfs
+should be avoided. Normally the default is the best choice: LUKS
+is specific to Linux so it makes sense to use a standard Linux
+file system.  The types
+.B exfat
+or
+.B vfat
+might be useful in some special cases, but the file system will
+be owned by root, making use awkward, particularly since
+.B chown
+will not work with these file systems.  If no type is specified the
+default for
+.B mkfs
+will be used.
 .TP
 .B \-u
 .TQ
@@ -220,7 +250,7 @@ The commands
 mkdir /media/USER/DISK/Backup
 .br
 .B
-evdisk -s 8G -r USER_GPGID -u --create /media/USER/DISK/Backup
+evdisk \-s 8G \-r USER_GPGID \-u \-\-create /media/USER/DISK/Backup
 .RE
 .PP
 will create an 8 gigabyte encrypted ext4 virtual file system (the
@@ -263,7 +293,7 @@ is the process ID for the current
 process) provides the mapper device used to decrypt a LUKS file system.
 .PP
 .IB TARGET /root
-is the mount qpoint for the file system provided by
+is the mount point for the file system provided by
 .BR evdisk .
 .PP
 .IB TARGET /key.gpg
@@ -310,4 +340,6 @@ There is NO WARRANTY, to the extent permitted by law.
 \"  LocalWords:  EVDISK evdisk br fB fI GPG KEYID urandom killAll gpg
 \"  LocalWords:  subdirectory LUKS fITARGET sudo tty psuedotty TP TQ
 \"  LocalWords:  unmount decrypt rsync mkdir GPGID exfat Zaumen GPLv
-\"  LocalWords:  GPL cryptsetup fallocate losetup umount
+\"  LocalWords:  GPL cryptsetup fallocate losetup umount reloadagent
+\"  LocalWords:  cramfs vfat chown mkfs SIGKILL loopback PID IB
+\"  LocalWords:  mlocate
