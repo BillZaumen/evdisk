@@ -1059,7 +1059,7 @@ public class EVDisk {
 	    }
 	    System.exit(1);
 	}
-m
+
 	pb = new ProcessBuilder("mount", "/dev/mapper/" + mapperName,
 				dataDir.getCanonicalPath());
 	pb.inheritIO();
