@@ -26,7 +26,7 @@ import javax.swing.filechooser.FileView;
  */
 public class EVDisk {
 
-    // We need the evdisk program so we can restart it
+    // We need the evdisk program's full path name so we can restart it
     // reliably. This field must be set to the actual
     // location of the evdisk program (e.g., /usr/bin/evdisk).
     private static String evdisk = "EVDISK";
@@ -39,13 +39,19 @@ public class EVDisk {
 
     private static final int BUSY = 32;
 
-
     private static String createKey() {
 	SecureRandom rg = new SecureRandom();
 	StringBuilder sb = new StringBuilder();
 	int count = 0;
+	// A limit of 32 provides 1.9X10^63 passphrases
+	// with one randomly selected from this set.
 	while (count < 32) {
-	    char ch = (char) rg.nextInt(128);
+	    // 127 to exclude 0x7F, which cannot be typed
+	    // from a keyboard. We want printable characters
+	    // in case a cryptsetup implementation is fussy
+	    // about that or there is some sort of charset
+	    // issue. There are 95 choices for each character.
+	    char ch = (char) rg.nextInt(127);
 	    if (Character.isValidCodePoint(ch)
 		&& !Character.isISOControl(ch)) {
 		count++;
