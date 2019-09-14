@@ -380,6 +380,8 @@ public class EVDisk {
 			    } else {
 				openButton.setEnabled(false);
 			    }
+			} else {
+			    openButton.setEnabled(false);
 			}
 			super.setSelectedFile(f);
 		    } catch (Exception e) {
@@ -594,6 +596,7 @@ public class EVDisk {
 	}
     }
 
+    static boolean abortClose = false;
 
     public static void main(String argv[]) throws Exception {
 	int ind = 0;
@@ -998,6 +1001,7 @@ public class EVDisk {
 		    try {
 			boolean firstTime = true;
 			while (!close(dataDir, ld, dataFile)) {
+			    if (abortClose) break;
 			    if (firstTime == true) {
 				SwingUtilities.invokeLater(() -> {
 					topPanelCL.show(topPanel, "closing");
@@ -1026,6 +1030,7 @@ public class EVDisk {
 	    } else {
 		System.err.println("evdisk: " + msg);
 	    }
+	    abortClose = true;
 	    System.exit(1);
 	}
 	BufferedReader r = new BufferedReader
@@ -1040,6 +1045,7 @@ public class EVDisk {
 	    } else {
 		System.err.println("evdisk: " + msg);
 	    }
+	    abortClose = true;
 	    System.exit(1);
 	}
 
@@ -1063,6 +1069,7 @@ public class EVDisk {
 	    } else {
 		System.err.println("evdisk: " + msg);
 	    }
+	    abortClose = true;
 	    System.exit(1);
 	}
 
@@ -1081,6 +1088,7 @@ public class EVDisk {
 	    // nothing was mounted, so there is no mount point
 	    // to be 'busy'.
 	    close(dataDir, ld, dataFile);
+	    abortClose = true;
 	    System.exit(1);
 	}
 
