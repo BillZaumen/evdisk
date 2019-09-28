@@ -212,6 +212,8 @@ public class EVDisk {
 		pb = new ProcessBuilder("losetup", "-d", ld);
 		p = pb.start();
 		p.waitFor();
+		key.setWritable(true); // to make sure we can delete it.
+		key.delete();
 		dataFile.delete();
 		System.out.println("LUKS formatting failed");
 		System.exit(1);

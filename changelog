@@ -1,5 +1,11 @@
-mkmediafs (1.0.0) unstable; urgency=low
+evdisk (1.4) unstable; urgency=low
 
-  * Created the initial version  and a man page.
+  * First complete implementation.
 
- --  Bill Zaumen <bill.zaumen+evdisk@gmail.com>  Sun, 16 Apr 2017 20:00:00 -0700
+ --  Bill Zaumen <bzdev.org@gmail.com>  Fri, 27 Sep 2019 22:16:00 -0700
+
+evdisk (1.1) unstable; urgency=low
+
+  * Created the initial version and a man page.
+
+ --  Bill Zaumen <bzdev.org@gmail.com>  Sun, 16 Apr 2019 20:00:00 -0700

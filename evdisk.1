@@ -75,7 +75,7 @@ passwords are not cached because
 with no arguments can be started by a desktop action, and multiple
 desktop actions can share the same tty or psuedotty.  The GPG
 passphrase will be cached (there is no reliable way to prevent this).
-To remove all passphrases, run the command
+To remove all GPG passphrases, run the command
 .IP
 .B
 gpg-connect-agent reloadagent /bye
@@ -85,15 +85,16 @@ that the virtual file system is being loaded or can be closed.
 .PP
 Regardless of how
 .B evdisk
-is started, it will open a window. This window will initially contain
-some text indicating that an encrypted virtual file system is being
-loaded.  Once ready, the window will contain a 'close' button that
-will allow the encrypted virtual file system to be removed. This
-operation may fail if the file system is busy.  One should terminate
-processes that have opened any files in this file system or whose
-current working directory is a directory in this file system (this
-includes terminals), and then try again. If the window is closed by
-clicking on the appropriate control on the window's border, or if the
+is started, except when creating a new file system, it will open a
+window. This window will initially contain some text indicating that
+an encrypted virtual file system is being loaded.  Once ready, the
+window will contain a 'close' button that will allow the encrypted
+virtual file system to be removed. Closing the file system may fail if
+the file system is busy.  One should terminate processes that have
+opened any files in this file system or whose current working
+directory is a directory in this file system (this includes
+terminals), and then try again. If the window is closed by clicking on
+the appropriate control on the window's border, or if the
 .B evdisk
 program is interrupted (e.g., by typing CONTROL-C in its terminal
 window), the window may display text indicating the the file system
@@ -106,7 +107,12 @@ With the
 or
 .B \-\-create
 option, virtual file system will be create. The target directory must
-be provided and must exist. Once the
+be provided and must exist, but must not contain the files
+.BR encrypted ,
+.BR key.gpg ,
+or the directory
+.BR root .
+Once the
 .B evdisk
 command completes, the target directory will contain a subdirectory
 named
@@ -135,7 +141,17 @@ and
 .B 20G
 are valid sizes.  The values corresponding to 1M and 1G are rounded up
 to the nearest power of 2 so that 1M is actually 1,048,576 bytes and
-1G is actually 1,073,741,824 bytes.
+1G is actually 1,073,741,824 bytes. On many systems there is a minimum
+size for LUKS to work. If the size is too small, one may see an error
+message indicating that LUKS formatting failed or that one cannot set up
+a mapper.  On PopOS 19.04, the minimum size is 17 MB as of Sept 27, 2019.
+This may change at any time (the limits are set by various Linux programs
+such as
+.B losetup
+.B cryptsetup
+or
+.BR mkfs ).
+Typical file systems, of course, are much larger.
 .TP
 .BI \-r\  GPG_KEYID
 .TQ
@@ -145,7 +161,8 @@ It provided an ID that names a GPG key in a form acceptable to the
 .B gpg
 command using its
 .B \-r
-option.
+option. One key should be provided for each individual that is able
+to use the file system.
 .TP
 .BI \-t\  TYPE
 .TQ
@@ -220,7 +237,7 @@ or if the corresponding target directory is owned by the user.
 A summary of the command-line options will be printed.
 
 .SH USE CASE
-
+.PP
 The primary use case is one in which a user wishes to keep a backup
 of a home directory, or some specific directories, on a flash drive
 that the user will carry at all times as an "emergency backup" in case
@@ -235,11 +252,14 @@ if they have GPG keys, those can be used to set up
 .B key.gpg
 so that these particular individuals can mount the disk's file system.
 While one could keep backup copies of everything in a safe deposit
-box, going back and forth is time consuming: much more so than using
-a program such as
-.B rsync
-to keep the encrypted file system up to date.
-
+box, going back and forth is time consuming and files will not be
+transferred to such a location with any reasonable frequency due to the
+effort and hassle involved.  It is far easier to keep GPG keys in a
+safe deposit box as a backup and only transfer a full backup to such
+a location occasionally.
+.PP
+In conjunction with evdisk, one may use rsync to keep the directories
+on the encrypted file system in sync with directories on one's computer.
 .SH EXAMPLE
 Suppose a flash drive was inserted and mounted at
 .BR /media/USER/DISK .
@@ -335,11 +355,12 @@ There is NO WARRANTY, to the extent permitted by law.
 .BR losetup (1)
 .BR mlocate (1)
 .BR mount (1)
+.BR rsync (1)
 .BR sudo (1)
 .BR umount (1)
 \"  LocalWords:  EVDISK evdisk br fB fI GPG KEYID urandom killAll gpg
 \"  LocalWords:  subdirectory LUKS fITARGET sudo tty psuedotty TP TQ
 \"  LocalWords:  unmount decrypt rsync mkdir GPGID exfat Zaumen GPLv
 \"  LocalWords:  GPL cryptsetup fallocate losetup umount reloadagent
-\"  LocalWords:  cramfs vfat chown mkfs SIGKILL loopback PID IB
+\"  LocalWords:  cramfs vfat chown mkfs SIGKILL loopback PID IB PopOS
 \"  LocalWords:  mlocate
