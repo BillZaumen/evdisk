@@ -1,4 +1,4 @@
-VERSION = 1.4
+VERSION = 1.5
 BINDIR = /usr/bin
 MANDIR = /usr/share/man
 DOCDIR = /usr/share/doc/evdisk

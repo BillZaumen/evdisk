@@ -1,3 +1,9 @@
+evdisk (1.5) unstable; urgency=low
+
+  * Add GUI for setup.
+
+ --  Bill Zaumen <bzdev.org@gmail.com>  Fri, 27 Sep 2019 22:16:00 -0700
+
 evdisk (1.4) unstable; urgency=low
 
   * First complete implementation.

@@ -10,3 +10,8 @@ Type=Application
 Icon=/usr/share/icons/hicolor/scalable/apps/evdisk.svg
 Categories=System;Utility;
 StartupNotify=false
+Actions=config
+
+[Desktop Action config]
+Name = Configure a Directory
+Exec=evdisk --create

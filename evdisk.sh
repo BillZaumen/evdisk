@@ -11,12 +11,24 @@ import java.nio.file.attribute.*;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
+import javax.swing.table.TableModel;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileView;
 /**
@@ -25,6 +37,319 @@ import javax.swing.filechooser.FileView;
  * "./evdisk --help"  will describe the options.
  */
 public class EVDisk {
+
+    static class SetupPane extends JPanel {
+	static Vector<String> units = new Vector<>(2);
+	static {
+	    units.add("Gigabytes");
+	    units.add("Megabytes");
+	}
+	static Object rcols[] ={"\u2714", "recipients"};
+
+	static int configColumn(JTable table, int col, String example) {
+	    TableCellRenderer tcr = table.getDefaultRenderer(String.class);
+	    int w;
+	    if (tcr instanceof DefaultTableCellRenderer) {
+		DefaultTableCellRenderer dtcr = (DefaultTableCellRenderer)tcr;
+		FontMetrics fm = dtcr.getFontMetrics(dtcr.getFont());
+		w = 10 + fm.stringWidth(example);
+	    } else {
+		w = 10 + 12 * example.length();
+	    }
+	    TableColumnModel cmodel = table.getColumnModel();
+	    TableColumn column = cmodel.getColumn(col);
+	    int ipw = column.getPreferredWidth();
+	    if (ipw > w) {
+		w = ipw;
+	    }
+	    column.setPreferredWidth(w);
+	    if (col == 1) {
+		column.setMinWidth(w);
+	    } else 	if (col == 3) {
+		column.setMinWidth(15+w);
+	    }
+	    return w;
+	}
+
+	ArrayList<String> keyIDList = new ArrayList<>();
+	ArrayList<String> keyDescrList = new ArrayList<>();
+	DefaultTableModel rtm;
+
+	void initKeyLists() {
+	    ProcessBuilder pb = new ProcessBuilder("gpg", "-K");
+	    try {
+		Process p = pb.start();
+		LineNumberReader r =
+		    new LineNumberReader(new InputStreamReader
+					 (p.getInputStream(), "UTF-8"));
+		String line;
+		String last = null;
+		while ((line = r.readLine()) != null) {
+		    String pattern = "(uid[ \t]+[\\[][^\\]]*])";
+		    if (last != null && line.matches(pattern + ".*")) {
+			line = line.replaceFirst(pattern, "");
+			keyIDList.add(last.trim());
+			keyDescrList.add(line.trim());
+		    }
+		    if (line.trim().matches("[0-9A-Fa-f]+")) {
+			last = line;
+		    }
+		}
+	    } catch (IOException eio) {
+	    }
+	}
+
+	ArrayList<String> getKeys() {
+	    int rtlen = rtm.getRowCount();
+	    ArrayList<String> keys = new ArrayList<>();
+	    for (int i = 0; i < rtlen; i++) {
+		if (rtm.getValueAt(i, 0).equals(Boolean.TRUE)) {
+		    keys.add(keyIDList.get(i));
+		}
+	    }
+	    return keys;
+	}
+
+	String[] getFSNames() {
+	    ArrayList<String> list = new ArrayList<>();
+	    File dir = new File("/sbin");
+	    for (String fname: dir.list()) {
+		if (fname.startsWith("mkfs.")) {
+		    String entry = fname.substring(5);
+		    if (entry.length() > 0 && !entry.equals("cramfs")) {
+			list.add(entry);
+		    }
+		}
+	    }
+	    Collections.sort(list);
+	    String[] results = new String[list.size()];
+	    results = list.toArray(results);
+	    return results;
+	}
+
+	JComboBox<String> fscb;
+	File targetDir;
+	JTextField tf;
+	JComboBox<String> cb;
+	JCheckBox rndCB;
+
+	public int getFSSize() throws Exception {
+	    String text = tf.getText();
+	    if (text.length() == 0) return -1;
+	    return Integer.parseInt(tf.getText());
+	}
+
+	public String getFSUnits() {
+	    if (cb.getSelectedIndex() == 0) return "G";
+	    else return "M";
+	}
+
+	public String getTargetDir() throws Exception {
+	    if (targetDir == null) return null;
+	    return targetDir.getCanonicalPath();
+	}
+
+	public String getType() throws Exception {
+	    return (String)fscb.getSelectedItem();
+	}
+
+	public boolean useRandom() throws Exception {
+	    return rndCB.isSelected();
+	}
+
+	private void addComponent(JComponent component,
+				  GridBagLayout gridbag, GridBagConstraints c)
+	{
+	    gridbag.setConstraints(component, c);
+	    add(component);
+	}
+
+	JButton targetOpenButton = null;
+
+	public SetupPane() throws IOException {
+	    super();
+	    initKeyLists();
+	    JLabel sizeLabel = new JLabel("file-system size");
+	    tf =  new JTextField(5);
+	    InputVerifier  tfiv = new InputVerifier() {
+		    public boolean verify(JComponent input) {
+			JTextField tf  = (JTextField) input;
+			String string = tf.getText();
+			if (string == null) string = "";
+			string = string.trim();
+			try {
+			    if (string.length() == 0) return true;
+			    int value = Integer.parseInt(string);
+			    return true;
+			} catch (Exception e) {
+			    return false;
+			}
+		    }
+		};
+	    DocumentFilter tff = new DocumentFilter() {
+		    @Override
+		    public void insertString(DocumentFilter.FilterBypass fb,
+					     int offset, String string,
+					     AttributeSet attr)
+			throws BadLocationException
+		    {
+			for (int i = 0; i < string.length(); i++) {
+			    char ch = string.charAt(i);
+			    if (!Character.isDigit(string.charAt(i))) {
+				Toolkit.getDefaultToolkit().beep();
+				return;
+			    }
+			}
+			super.insertString(fb, offset, string, attr);
+		    }
+		    @Override
+		    public void replace(DocumentFilter.FilterBypass fb,
+					int offset,  int length,
+					String string,AttributeSet attr)
+			throws BadLocationException
+		    {
+			for (int i = 0; i < string.length(); i++) {
+			    char ch = string.charAt(i);
+			    if (!Character.isDigit(string.charAt(i))) {
+				Toolkit.getDefaultToolkit().beep();
+				return;
+			    }
+			}
+			super.replace(fb, offset, length, string, attr);
+		    }
+		};
+	    ((AbstractDocument)tf.getDocument()).setDocumentFilter(tff);
+	    tf.setInputVerifier(tfiv);
+	    cb = new JComboBox<>(units);
+	    JLabel rlabel = new JLabel("Recipients Key IDs");
+	    rtm = new DefaultTableModel(rcols, 0) {
+		    public Class<?> getColumnClass(int col) {
+			return (col == 0)? Boolean.class: String.class;
+		    }
+		};
+	    int rtlen = keyIDList.size();
+	    for (int i = 0; i < rtlen; i++) {
+		Object row[] = {Boolean.FALSE, keyDescrList.get(i)};
+		rtm.addRow(row);
+	    }
+
+	    JTable rtable = new JTable() {
+		    public boolean isCellEditable(int row, int column) {
+			return (column == 0);
+		    }
+		};
+	    rtable.setModel(rtm);
+	    rtable.getTableHeader().setReorderingAllowed(false);
+	    JScrollPane rSP = new JScrollPane(rtable);
+	    rtable.setFillsViewportHeight(true);
+	    rtable.setColumnSelectionAllowed(false);
+	    rtable.setRowSelectionAllowed(false);
+	    rtable.getColumnModel().getColumn(0).setPreferredWidth(15);
+	    int twidth = 15;
+	    // twidth = Setup.configColumn(subpathTable, 0," ");
+	    twidth +=
+		configColumn(rtable, 1,
+			     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm");
+	    rSP.setPreferredSize(new Dimension(twidth+10, 125));
+
+	    JLabel fslabel = new JLabel("File System");
+	    fscb = new JComboBox<>(getFSNames());
+	    fscb.setSelectedItem("ext4");
+	    rndCB = new JCheckBox("initialize file system with random values");
+
+	    JLabel dirlabel = new JLabel("Target Directory:");
+	    final JLabel dirpath = new JLabel("<to be determined>");
+
+	    FileFilter filter = new FileFilter() {
+		    public boolean accept(File f) {
+			return f.isDirectory();
+		    }
+		    public String getDescription() {
+			return "Directory";
+		    }
+		};
+	    String dir = "/media/" + System.getProperty("user.name");
+	    File fdir = new File(dir).getCanonicalFile();
+	    final JFileChooser fc = new JFileChooser(dir) {
+		    @Override
+		    public void setSelectedFile(File f) {
+			try {
+			    if (f.getCanonicalFile().equals(fdir)) {
+				targetDir = null;
+			    } else if (f.isDirectory()) {
+				File root = new File(f, "root");
+				File key = new File(f, "key.gpg");
+				File encrypted = new File(f, "encrypted");
+				if (root.exists() || key.exists() ||
+				    encrypted.exists()) {
+				    targetOpenButton.setEnabled(false);
+				} else {
+				    targetOpenButton.setEnabled(true);
+				}
+			    } else {
+				targetOpenButton.setEnabled(false);
+			    }
+			    super.setSelectedFile(f);
+			} catch (Exception e) {
+			    super.setSelectedFile(f);
+			}
+		    }
+		};
+	    fc.addChoosableFileFilter(filter);
+	    fc.setAcceptAllFileFilterUsed(false);
+	    fc.setMultiSelectionEnabled(false);
+	    fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+	    fc.setDialogTitle("Configure Target Directory");
+	    fc.setApproveButtonText("Set Target");
+	    EVDisk.noTextFieldEditing(fc);
+	    openButton = EVDisk.findOpenButton(fc, fc.getApproveButtonText());
+	    JButton fcButton = new JButton("Set Target Directory");
+	    fcButton.addActionListener((event) -> {
+		    int status = fc.showOpenDialog(null);
+		    if (status == JFileChooser.APPROVE_OPTION) {
+			targetDir = fc.getSelectedFile();
+			if (targetDir != null) {
+			    try {
+				dirpath.setText(targetDir.getCanonicalPath());
+			    } catch (Exception ex) {
+				dirpath.setText("<to be determined>");
+			    }
+			} else {
+			    dirpath.setText("<to be determined>");
+			}
+		    } else {
+			targetDir = null;
+			dirpath.setText("<to be determined>");
+		    }
+		});
+
+	    GridBagLayout gridbag = new GridBagLayout();
+	    setLayout(gridbag);
+	    GridBagConstraints c = new GridBagConstraints();
+	    c.insets = new Insets(4, 8, 4, 8);
+	    c.anchor = GridBagConstraints.LINE_START;
+	    c.gridwidth = 1;
+	    addComponent(sizeLabel, gridbag, c);
+	    addComponent(tf, gridbag, c);
+	    c.gridwidth = GridBagConstraints.REMAINDER;
+	    addComponent(cb, gridbag, c);
+	    c.gridwidth = 1;
+	    addComponent(fslabel, gridbag, c);
+	    addComponent(fscb, gridbag, c);
+	    c.gridwidth = GridBagConstraints.REMAINDER;
+	    addComponent(fcButton, gridbag, c);
+
+	    c.gridwidth = 1;
+	    addComponent(dirlabel, gridbag, c);
+	    c.gridwidth = GridBagConstraints.REMAINDER;
+	    addComponent(dirpath, gridbag, c);
+
+	    addComponent(rlabel, gridbag, c);
+	    addComponent(rSP, gridbag, c);
+
+	    addComponent(rndCB, gridbag, c);
+	}
+    }
 
     // We need the evdisk program's full path name so we can restart it
     // reliably. This field must be set to the actual
@@ -102,26 +427,45 @@ public class EVDisk {
 	File dataDir = new File(targetDir, "root");
 	File key = new File(targetDir, "key.gpg");
 	String szString = sz + (gigabytes? "G": "M");
-	System.out.println("type = " + type);
 	String mkfs =  (type == null)? "/sbin/mkfs": "/sbin/mkfs." + type;
 	File mkfsFile =  new File(mkfs);
 	if (!mkfsFile.canExecute()) {
-	    System.err.println("File System format not known");
+	    String msg = "File system format not known";
+	    if (useGUI) {
+		JOptionPane.showMessageDialog(frame, msg, "EVDisk Error",
+					      JOptionPane.ERROR_MESSAGE);
+	    } else {
+		System.err.println("evdisk: " + msg);
+	    }
 	    System.exit(1);
 	}
 
 	if (!targetDir.exists()) {
-	    System.err.println("target directory does not exist");
+	    String msg = "Target directory does not exist";
+	    if (useGUI) {
+		JOptionPane.showMessageDialog(frame, msg, "EVDisk Error",
+					      JOptionPane.ERROR_MESSAGE);
+	    } else {
+		System.err.println("evdisk: " + msg);
+	    }
 	    System.exit(1);
 	}
 
 	if (dataFile.exists() || key.exists() || dataDir.exists()) {
-	    System.err.println("evdisk: in " + targetDir 
-			       + ", the files\n"
-			       + "         encrypted, Backup, and/or key.gpg "
-			       + "exist.\n"
-			       + "         Remove or pick a different target "
-			       + "directory.");
+	    if (useGUI) {
+		String msg = "Files encrypted, key.gpg, or root exist";
+		JOptionPane.showMessageDialog(frame, msg, "EVDisk Error",
+					      JOptionPane.ERROR_MESSAGE);
+	    } else {
+		System.err.println("evdisk: in " + targetDir
+				   + ", the files\n"
+				   + "         encrypted, Backup, "
+				   + "and/or key.gpg "
+				   + "exist.\n"
+				   + "         Remove or pick a different "
+				   + "target "
+				   + "directory.");
+	    }
 	    System.exit(1);
 	}
 
@@ -142,7 +486,13 @@ public class EVDisk {
 
 	Process p = pb.start();
 	if (p.waitFor() != 0) {
-	    System.err.println("evdisk: could not create encrypted file");
+	    String msg = "Could not create encrypted file";
+	    if (useGUI) {
+		JOptionPane.showMessageDialog(frame, msg, "EVDisk Error",
+					      JOptionPane.ERROR_MESSAGE);
+	    } else {
+		System.err.println("evdisk: " + msg);
+	    }
 	    System.exit(1);
 	}
 
@@ -154,7 +504,13 @@ public class EVDisk {
 	InputStream is = p.getInputStream();
 	if (p.waitFor() != 0) {
 	    dataFile.delete();
-	    System.err.println("could not set up loopback device");
+	    String msg = "Could not set up loopback device";
+	    if (useGUI) {
+		JOptionPane.showMessageDialog(frame, msg, "EVDisk Error",
+					      JOptionPane.ERROR_MESSAGE);
+	    } else {
+		System.err.println("evdisk: " + msg );
+	    }
 	    System.exit(1);
 	}
 	BufferedReader r = new BufferedReader
@@ -164,7 +520,13 @@ public class EVDisk {
 	System.out.println(" ... loopback device is " + ld);
 	if (ld == null) {
 	    dataFile.delete();
-	    System.err.println("no loopback");
+	    String msg = "No loopback device";
+	    if (useGUI) {
+		JOptionPane.showMessageDialog(frame, msg, "EVDisk Error",
+					      JOptionPane.ERROR_MESSAGE);
+	    } else {
+		System.err.println("evdisk: " + msg);
+	    }
 	    System.exit(1);
 	}
 	
@@ -193,7 +555,13 @@ public class EVDisk {
 	    os.close();
 	    if (p.waitFor() != 0) {
 		setOwnerGroup(dataFile, targetDir);
-		System.err.println("gpg failed");
+		String msg = "gpg failed";
+		if (useGUI) {
+		    JOptionPane.showMessageDialog(frame, msg, "EVDisk Error",
+						  JOptionPane.ERROR_MESSAGE);
+		} else {
+		    System.err.println("evdisk: " + msg);
+		}
 		System.exit(1);
 	    }
 	    setOwnerGroup(key, targetDir);
@@ -234,7 +602,13 @@ public class EVDisk {
 		p = pb.start();
 		p.waitFor();
 		dataFile.delete();
-		System.err.println("Cannot set up mapper");
+		String msg = "Cannot set up mapper";
+		if (useGUI) {
+		    JOptionPane.showMessageDialog(frame, msg, "EVDisk Error",
+						  JOptionPane.ERROR_MESSAGE);
+		} else {
+		    System.err.println("evdisk: " + msg);
+		}
 		System.exit(1);
 	    }
 
@@ -249,9 +623,16 @@ public class EVDisk {
 		    p = pb.start();
 		    p.waitFor();
 		    dataFile.delete();
-		    System.err.println("cannot create "
-				       + ((type == null)? "a":
-					  "an ext4") + " file system");
+		    String msg = "Cannot create "
+			+ ((type == null || type.equals("ext4"))?
+			   "a": "an ext4") + " file system";
+		    if (useGUI) {
+			JOptionPane.showMessageDialog
+			    (frame, msg, "EVDisk Error",
+			     JOptionPane.ERROR_MESSAGE);
+		    } else {
+			System.err.println("evdisk: " + msg);
+		    }
 		    System.exit(1);
 		}
 	    } finally {
@@ -306,7 +687,7 @@ public class EVDisk {
 
     private static JButton openButton = null;
 
-    private static JButton findOpenButton(java.awt.Container c, String text) {
+    static JButton findOpenButton(java.awt.Container c, String text) {
 	for (java.awt.Component cc: c.getComponents()) {
 	    String supertype = "";
 	    if (cc instanceof JTextField) continue;
@@ -326,7 +707,7 @@ public class EVDisk {
 	return null;
     }
 
-    private static void noTextFieldEditing(java.awt.Container c) {
+    static void noTextFieldEditing(java.awt.Container c) {
 	for (java.awt.Component cc: c.getComponents()) {
 	    String supertype = "";
 	    String text = null;
@@ -338,7 +719,6 @@ public class EVDisk {
 	       noTextFieldEditing((java.awt.Container)cc);
 	    }
 	}
-
     }
 
     private static String getTarget() throws IOException {
@@ -600,6 +980,8 @@ public class EVDisk {
 
     static boolean abortClose = false;
 
+    static JTextArea console;
+
     public static void main(String argv[]) throws Exception {
 	int ind = 0;
 	boolean createFile = false;
@@ -613,6 +995,9 @@ public class EVDisk {
 	String askpass = null;
 	boolean killAll = false;
 	String type = null;
+	boolean szSeen = false;
+	boolean useen = false;
+
 
 	while (ind < argv.length && argv[ind].startsWith("-")) {
 	    if (argv[ind].equals("--recipient") || argv[ind].equals("-r")) {
@@ -627,10 +1012,13 @@ public class EVDisk {
 		// this option is used internally
 		noSudo = false;
 	    } else if (argv[ind].equals("--evdiskUsesGUI")) {
+		// This is an internal options so it is not described
+		// in the manual page.
 		useGUI = true;
 	    } else if (argv[ind].equals("--size")
 		       || argv[ind].equals("-s")) {
 		ind++;
+		szSeen = true;
 		if (ind == argv.length) {
 		    System.err.println("evdisk: too few arguments");
 		    System.exit(1);
@@ -638,18 +1026,22 @@ public class EVDisk {
 		szString = argv[ind].trim();
 		try {
 		    String arg = argv[ind];
-		    if (arg.endsWith("M")) {
-			gigabytes = false;
-		    } else if (!arg.endsWith("G")) {
+		    if (!arg.matches("[0-9]+[gGmM]")) {
 			System.err.println("Could not parse \"" + argv[ind]
 					   + "\" - expecting a size");
 			System.exit(1);
+		    } else if (arg.endsWith("M") || arg.endsWith("m")) {
+			gigabytes = false;
 		    }
 		    sz = Integer.parseInt(arg.substring(0, arg.length()-1));
 		} catch (Exception el) {
 		    System.err.println("Could not parse \"" + argv[ind]
 				       + "\" - expecting a size");
 		    System.exit(1);
+		}
+		if (sz == 0 || (gigabytes == false & sz < 17)) {
+		    System.err.println("File-system size likely to be "
+				       + "too small");
 		}
 	    } else if (argv[ind].equals("--create")
 		       || argv[ind].equals("-c")) {
@@ -665,6 +1057,7 @@ public class EVDisk {
 	    } else if (argv[ind].equals("--urandom")
 		       || argv[ind].equals("-u")) {
 		fast = false;
+		useen = true;
 	    } else if (argv[ind].equals("--killAll")) {
 		killAll=true;
 	    } else if (argv[ind].equals("--help") || argv[ind].equals("-?")) {
@@ -747,6 +1140,123 @@ public class EVDisk {
 	String target = null;
 
 	if (ind == argv.length) {
+	    if (createFile && keyidList.size() == 0 && szSeen == false
+		&& useen == false && type == null) {
+		// we only have the -c or --create option and no target,
+		// so use a GUI to initialize an EVDisk directory
+		final ArrayList<String> cmds = new ArrayList<>();
+		SwingUtilities.invokeAndWait(() -> {
+			try {
+			    SetupPane setupPane = new SetupPane();
+			    boolean ok = false;
+			    do {
+				cmds.clear();
+				int status = JOptionPane.showConfirmDialog
+				    (null, setupPane, "Create EVDisk files",
+				     JOptionPane.OK_CANCEL_OPTION);
+				if (status == JOptionPane.YES_OPTION) {
+				    int fssz = setupPane.getFSSize();
+				    String units = setupPane.getFSUnits();
+				    String fstype = setupPane.getType();
+				    ArrayList<String> keyids
+					= setupPane.getKeys();
+				    boolean useRandom =
+					setupPane.useRandom();
+				    String targ = setupPane.getTargetDir();
+				    ok = true;
+				    if (fssz <= 0) {
+					String msg =
+					    "Filesystem size not set.";
+					JOptionPane.showMessageDialog
+					    (null, msg, "EVDisk Error",
+					     JOptionPane.ERROR_MESSAGE);
+					ok = false;
+				    } else if(units.equals("M") && fssz < 17) {
+					String msg =
+					    "Filesystem size too small "
+					    + "(less than 17 MBytes).";
+					JOptionPane.showMessageDialog
+					    (null, msg, "EVDisk Error",
+					     JOptionPane.ERROR_MESSAGE);
+					ok = false;
+				    }
+				    if (targ == null) {
+					String msg =
+					    "Target directory not set";
+					JOptionPane.showMessageDialog
+					    (null, msg, "EVDisk Error",
+					     JOptionPane.ERROR_MESSAGE);
+					ok = false;
+				    }
+				    if (keyids.size() == 0) {
+					String msg = "No GPG keys selected";
+					JOptionPane.showMessageDialog
+					    (null, msg, "EVDisk Error",
+					     JOptionPane.ERROR_MESSAGE);
+					ok = false;
+				    }
+				    cmds.add(evdisk);
+				    cmds.add("--evdiskUsesGUI");
+				    cmds.add("-s");
+				    cmds.add("" + fssz + units);
+				    cmds.add("-t");
+				    cmds.add(fstype);
+				    for (String keyid: keyids) {
+					cmds.add("-r");
+					cmds.add("0x" + keyid);
+				    }
+				    if (useRandom) {
+					cmds.add("-u");
+				    }
+				    cmds.add("-c");
+				    cmds.add(targ);
+				} else {
+				    System.exit(0);
+				}
+			    } while (!ok);
+			} catch (Exception e) {
+			    String msg = e.getClass().getName()
+				+ ": " + e.getMessage();
+			    JOptionPane.showMessageDialog
+				(null, msg, "EVDisk Error",
+				 JOptionPane.ERROR_MESSAGE);
+			    System.exit(1);
+
+			}
+		    });
+
+
+		System.out.println("---------");
+		for (String arg: cmds) {
+		    System.out.println(arg);
+		}
+
+
+		ProcessBuilder setupPB = new ProcessBuilder(cmds);
+		setupPB.redirectErrorStream(true);
+		Process setupP = setupPB.start();
+		LineNumberReader r =
+		    new LineNumberReader(new InputStreamReader
+					 (setupP.getInputStream(), "UTF-8"));
+
+		SwingUtilities.invokeLater(() -> {
+			frame =
+			    new JFrame("EVDisk - Directory Initialization");
+			console = new JTextArea(15, 40);
+			frame.add(console);
+			frame.pack();
+			frame.setVisible(true);
+		    });
+		String nt = null;
+		while ((nt = r.readLine()) != null) {
+		    String text = console.getText();
+		    console.setText(text + nt + "\n");
+		    console.repaint();
+		}
+		// provide some time to read the last console message
+		Thread.currentThread().sleep(3000L);
+		System.exit(setupP. waitFor());
+	    }
 	    if (createFile) {
 		System.err.println("evdisk: missing target");
 		System.exit(1);
@@ -759,6 +1269,9 @@ public class EVDisk {
 		askpass = findSSHAskPass();
 	    }
 	} else {
+	    if (createFile && useGUI) {
+		askpass = findSSHAskPass();
+	    }
 	    target = argv[ind];
 	}
 
@@ -783,9 +1296,15 @@ public class EVDisk {
 	    if (noSudo) {
 		List<String>cmds = new ArrayList<String>();
 		cmds.add("sudo");
-		if (askpass != null) cmds.add("-A");
+		if (askpass != null) {
+		    cmds.add("-A");
+		    cmds.add("-k");
+		}
 		cmds.add(evdisk);
 		cmds.add("--restartingWithSudo");
+		if (askpass != null) {
+		    cmds.add("--evdiskUsesGUI");
+		}
 		for (String keyid: keyidList) {
 		    cmds.add("-r");
 		    cmds.add(keyid);
@@ -1025,7 +1544,7 @@ public class EVDisk {
 	InputStream is = p.getInputStream();
 	if (p.waitFor() != 0) {
 	    dataFile.setReadOnly();
-	    String msg = "could not set up loopback device";
+	    String msg = "Could not set up loopback device";
 	    if (useGUI) {
 		JOptionPane.showMessageDialog(frame, msg, "EVDisk Error",
 					      JOptionPane.ERROR_MESSAGE);
@@ -1040,7 +1559,7 @@ public class EVDisk {
 	ld = r.readLine();
 	if (ld == null) {
 	    dataFile.setReadOnly();
-	    String msg = "no loopback device found";
+	    String msg = "No loopback device found";
 	    if (useGUI) {
 		JOptionPane.showMessageDialog(frame, msg, "EVDisk Error",
 					      JOptionPane.ERROR_MESSAGE);
@@ -1064,7 +1583,7 @@ public class EVDisk {
 	    if (!mapperFile.exists()) {
 		System.err.println("evdisk: no mapper created");
 	    }
-	    String msg = "'cryptsetup open' failed";
+	    String msg = "'Cryptsetup open' failed";
 	    if (useGUI) {
 		JOptionPane.showMessageDialog(frame, msg, "EVDisk Error",
 					      JOptionPane.ERROR_MESSAGE);
@@ -1080,7 +1599,7 @@ public class EVDisk {
 	pb.inheritIO();
 	p = pb.start();
 	if (p.waitFor() != 0) {
-	    String msg = "mount failed";
+	    String msg = "Mount failed";
 	    if (useGUI) {
 		JOptionPane.showMessageDialog(frame, msg, "EVDisk Error",
 					      JOptionPane.ERROR_MESSAGE);

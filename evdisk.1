@@ -36,11 +36,28 @@ that contains the file system itself (contained in an ordinary but
 encrypted file), and a file
 .B key.gpg
 that contains a LUKS key encrypted with GPG. The LUKS key is
-generated when the encrypted virtual file system is initialized using
-the
+generated when the encrypted virtual file system is initialized.
+The easiest way to initialize the virtual file system is to
+either use a desktop action (by pushing the right button of the mouse
+when over the EVDisk icon and then selecting "Configure a Directory")
+or by using the command
+.IP
+.B evdisk\ \-\-create
+.PP
+with no other options. This will bring up a dialog box asking for
+the values for various options. The full
 .B \-\-create
-option described below. The LUKS key is 32 characters long and
-consists of random printable 7-bit ASCII characters.
+option is described below: when used as a command-line program, other
+options are needed with the
+.B \-\-create
+option. In either case, the LUKS key that is generated is 32
+characters long, consisting of random printable 7-bit ASCII
+characters, and is itself encrypted by GPG.  The command-line
+version will encrypt the LUKS key using any GPG key that GPG
+can use. When the graphical user interface is used, only those
+keys for which the user has a private key are available (both to keep
+the list of keys short and because this is what the user would typically
+use).
 .PP
 Once the target directory
 .I TARGET
@@ -100,13 +117,32 @@ program is interrupted (e.g., by typing CONTROL-C in its terminal
 window), the window may display text indicating the the file system
 is busy, and the program will wait until the file system is no longer
 busy before actually exiting.
+.SH STARTING EVDisk WITH THE WINDOW SYSTEM
+.PP
+EVDisk is typically installed with a desktop file whose icon can be
+clicked to start EVDisk. The user will be asked for a directory
+containing an EVDisk virtual file system.  If the mouse is right
+clicked, the user can select an option "Configure a Directory" that
+open a dialog box that can be used to configure an EVDisk virtual file
+system. The directory selected must exist and must not contain any of
+EVDisk's expected files:
+.BR encrypted ,
+.BR key.gpg ,
+and the directory
+.BR root.
+These files and directories will be created.
+
 .SH OPTIONS
 .PP
 With the
 .B \-c
 or
 .B \-\-create
-option, virtual file system will be create. The target directory must
+option, a virtual file system will be create. If there are no other
+arguments besides the
+.B \-\-create
+option, a window will appear that will be used to set any additional
+options. Otherwise the target directory must
 be provided and must exist, but must not contain the files
 .BR encrypted ,
 .BR key.gpg ,
@@ -122,7 +158,8 @@ and two ordinary files named
 (which contains an encrypted file system) and
 .B key.gpg
 (which contains a LUKS key encrypted with GPG). The following options
-are applicable (all are mandatory, except for the
+are applicable when there are any additional arguments (all are
+mandatory, except for the
 .B \-u
 option):
 .TP
@@ -211,7 +248,7 @@ using a similar option and immediately before
 is used to create a virtual file system. The result of this option,
 or its equivalent, is that the virtual file system will be more secure.
 .PP
-There are two remaining options, and for these, a target directory is
+There are two remaining options, and for these a target directory is
 not used:
 .TP
 .B \-\-killAll
@@ -244,7 +281,7 @@ that the user will carry at all times as an "emergency backup" in case
 the house literally burns down or everything in it is stolen. By
 using evdisk to set up an encrypted file system, there is little risk
 that any third party will be able to access the encrypted file system
-as such a third party will not have the GPG key ring needed to decrypt
+as such a third party will not even have the GPG key ring needed to decrypt
 the key file
 .BR key.gpg .
 If there are trusted individuals who should be able to read the disk,
@@ -270,7 +307,7 @@ The commands
 mkdir /media/USER/DISK/Backup
 .br
 .B
-evdisk \-s 8G \-r USER_GPGID \-u \-\-create /media/USER/DISK/Backup
+evdisk \-s 8G \-r USER_GPG_ID \-u \-\-create /media/USER/DISK/Backup
 .RE
 .PP
 will create an 8 gigabyte encrypted ext4 virtual file system (the
@@ -298,6 +335,22 @@ Files in this file system are reasonably safe: you can take the
 disk with you and even if lost, someone would have to break GPG
 encryption to recover the key, and the key ring needed for decryption
 is not on the this disk.
+.PP
+As a second example, suppose you have a friend whom you would trust
+with access to your home directory, and who has a GPG key. The
+command
+.RS
+.PP
+.B
+evdisk \-s 8G \-r USER_GPG_ID \r FRIEND-GPG_ID \\
+.B
+\ \ \ \ \-u \-\-create /media/USER/DISK/Backup
+.RE
+will encrypt the LUKS key so that it can be used with either of the
+two GPG (private) keys.  While one can set up LUKS with encrypted
+keys (each decrypted with a pass phrase), it is then necessary to
+transfer the passphrase to the other individual, and that step is
+not necessary with EVDisk.
 .SH FILES
 .PP
 .BI /dev/loop N
@@ -351,6 +404,7 @@ There is NO WARRANTY, to the extent permitted by law.
 .BR dd (1)
 .BR fallocate (1)
 .BR gpg (1)
+.BR java (1)
 .BR locate (1)
 .BR losetup (1)
 .BR mlocate (1)
@@ -363,4 +417,4 @@ There is NO WARRANTY, to the extent permitted by law.
 \"  LocalWords:  unmount decrypt rsync mkdir GPGID exfat Zaumen GPLv
 \"  LocalWords:  GPL cryptsetup fallocate losetup umount reloadagent
 \"  LocalWords:  cramfs vfat chown mkfs SIGKILL loopback PID IB PopOS
-\"  LocalWords:  mlocate
+\"  LocalWords:  mlocate EVDisk EVDisk's decrypted
