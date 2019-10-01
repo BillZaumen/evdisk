@@ -1,3 +1,11 @@
+evdisk (1.6) unstable; urgency=low
+
+  * The software is now kept in a JAR file instead of being run
+    as a #! script (which the latest versions of Java allow the
+    java interpretter to do).
+
+ --  Bill Zaumen <bzdev.org@gmail.com>  Fri, 27 Sep 2019 22:16:00 -0700
+
 evdisk (1.5) unstable; urgency=low
 
   * Add GUI for setup.

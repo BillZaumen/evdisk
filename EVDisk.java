@@ -1,5 +1,3 @@
-#!/usr/bin/java --source 11
-
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -354,13 +352,16 @@ public class EVDisk {
     // We need the evdisk program's full path name so we can restart it
     // reliably. This field must be set to the actual
     // location of the evdisk program (e.g., /usr/bin/evdisk).
-    private static String evdisk = "EVDISK";
+    // private static String evdisk = "EVDISK";
+    private static String evdisk =
+	System.getProperty("evdisk", "/usr/bin/evdisk");
 
     // We need a directory where icons are stored so we get a
     // meaningful one if we 'minimize' the window. This field
     // must be set the correct directory (e.g., /usr/share/icons/hicolor)
-
-    private static String icondir = "ICONDIR";
+    // private static String icondir = "ICONDIR";
+    private static String icondir =
+	System.getProperty("icondir", "/usr/share/icons/hicolor");
 
     private static final int BUSY = 32;
 
@@ -1616,6 +1617,5 @@ public class EVDisk {
 	SwingUtilities.invokeLater(() -> {
 		topPanelCL.show(topPanel, "close");
 	    });
-
     }
 }
