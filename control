@@ -22,5 +22,3 @@ Description:Utility that provides an encrypted virtual disk
  (e.g., to provide an encrypted backup that can be
  safely carried around because reading the key requires
  the right GPG keyring, which is stored separately).
- Evdisk require Java 11 or later because the program is
- packaged as a script.
