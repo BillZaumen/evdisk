@@ -1,4 +1,4 @@
-VERSION = 1.6
+VERSION = 1.7
 SYS_BINDIR = /usr/bin
 SYS_MANDIR = /usr/share/man
 SYS_DOCDIR = /usr/share/doc/evdisk
@@ -33,8 +33,9 @@ all: deb
 classes:
 	mkdir -p classes
 
-evdisk.jar: EVDisk.java classes
+evdisk.jar: EVDisk.java classes EVDisk.properties
 	javac -d classes EVDisk.java
+	cp EVDisk.properties classes
 	jar cfe evdisk.jar EVDisk -C classes .
 
 install: evdisk.jar
