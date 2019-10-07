@@ -255,7 +255,6 @@ public class EVDisk {
 	    rtable.setRowSelectionAllowed(false);
 	    rtable.getColumnModel().getColumn(0).setPreferredWidth(15);
 	    int twidth = 15;
-	    // twidth = Setup.configColumn(subpathTable, 0," ");
 	    twidth +=
 		configColumn(rtable, 1,
 			     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm");
@@ -442,7 +441,6 @@ public class EVDisk {
 	String mkfs =  (type == null)? "/sbin/mkfs": "/sbin/mkfs." + type;
 	File mkfsFile =  new File(mkfs);
 	if (!mkfsFile.canExecute()) {
-	    // String msg = "File system format not known";
 	    String msg = getmsg("unknownFSFormat");
 	    if (useGUI) {
 		JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
@@ -454,7 +452,6 @@ public class EVDisk {
 	}
 
 	if (!targetDir.exists()) {
-	    // String msg = "Target directory does not exist";
 	    String msg = getmsg("noTargetDir");
 	    if (useGUI) {
 		JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
@@ -467,30 +464,15 @@ public class EVDisk {
 
 	if (dataFile.exists() || key.exists() || dataDir.exists()) {
 	    if (useGUI) {
-		// String msg = "Files encrypted, key.gpg, or root exist";
 		String msg = getmsg("existingFiles");
 		JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
 					      JOptionPane.ERROR_MESSAGE);
 	    } else {
-		/*
-		System.err.println("evdisk: in " + targetDir
-				   + ", the files\n"
-				   + "         encrypted, Backup, "
-				   + "and/or key.gpg "
-				   + "exist.\n"
-				   + "         Remove or pick a different "
-				   + "target "
-				   + "directory.");
-		*/
 		System.err.println(getmsg("existingFilesLong", targetDir));
 	    }
 	    System.exit(1);
 	}
 
-	/*
-	System.out.println(" ... creating " + dataFile.getCanonicalPath()
-			   + ", size = " + szString);
-	*/
 	System.out.println(getmsg("creating", dataFile.getCanonicalPath(),
 				  szString));
 
@@ -508,7 +490,6 @@ public class EVDisk {
 
 	Process p = pb.start();
 	if (p.waitFor() != 0) {
-	    // String msg = "Could not create encrypted file";
 	    String msg = getmsg("createEncryptedFailed");
 	    if (useGUI) {
 		JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
@@ -520,7 +501,6 @@ public class EVDisk {
 	}
 
 
-	// System.out.println(" ... setting up loopback device");
 	System.out.println(getmsg("loopback"));
 	pb = new ProcessBuilder("losetup", "-f", "--show"
 				, dataFile.getCanonicalPath());
@@ -528,7 +508,6 @@ public class EVDisk {
 	InputStream is = p.getInputStream();
 	if (p.waitFor() != 0) {
 	    dataFile.delete();
-	    // String msg = "Could not set up loopback device";
 	    String msg = getmsg("loopbackFailed");
 	    if (useGUI) {
 		JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
@@ -542,11 +521,9 @@ public class EVDisk {
 	    (new InputStreamReader(is, "UTF-8"));
 	String ld = r.readLine();
 
-	// System.out.println(" ... loopback device is " + ld);
 	System.out.println(getmsg("foundLoopback", ld));
 	if (ld == null) {
 	    dataFile.delete();
-	    // String msg = "No loopback device";
 	    String msg = getmsg("noLoopback");
 	    if (useGUI) {
 		JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
@@ -558,7 +535,6 @@ public class EVDisk {
 	}
 	
 	try {
-	    // System.out.println(" ... creating key in file " + key);
 	    System.out.println(getmsg("creatingKeyInFile", key));
 	    List<String>cmds = new ArrayList<String>();
 	    cmds.add("gpg");
@@ -569,10 +545,6 @@ public class EVDisk {
 		cmds.add(keyid);
 	    }
 	    pb = new ProcessBuilder(cmds);
-	    /*
-	    pb = new ProcessBuilder("gpg", "-e", "--no-default-recipient",
-				    "-r", keyid);
-	    */
 	    pb.redirectOutput(key);
 	    p = pb.start();
 	    OutputStream os = p.getOutputStream();
@@ -583,7 +555,6 @@ public class EVDisk {
 	    os.close();
 	    if (p.waitFor() != 0) {
 		setOwnerGroup(dataFile, targetDir);
-		// String msg = "gpg failed";
 		String msg = getmsg("gpgFailed");
 		if (useGUI) {
 		    JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
@@ -596,7 +567,6 @@ public class EVDisk {
 	    setOwnerGroup(key, targetDir);
 	    key.setReadOnly();
 
-	    // System.out.println(" ... creating LUKS container");
 	    System.out.println(getmsg("creatingLUKS"));
 	    pb = new ProcessBuilder("cryptsetup", "-d", "-", "luksFormat",
 				    ld);
@@ -613,7 +583,6 @@ public class EVDisk {
 		key.setWritable(true); // to make sure we can delete it.
 		key.delete();
 		dataFile.delete();
-		// System.out.println("LUKS formatting failed");
 		String msg = getmsg("formattingLUKSFailed");
 		if (useGUI) {
 		    JOptionPane.showMessageDialog(frame, msg,
@@ -625,7 +594,6 @@ public class EVDisk {
 		System.exit(1);
 	    }
 
-	    // System.out.println(" ... Setting up mapper");
 	    System.out.println(getmsg("setupMapper"));
 	    pb = new ProcessBuilder("cryptsetup", "-d", "-",
 				    "open", ld, mapperName);
@@ -641,7 +609,6 @@ public class EVDisk {
 		p = pb.start();
 		p.waitFor();
 		dataFile.delete();
-		// String msg = "Cannot set up mapper";
 		String msg = getmsg("setupMapperFailed");
 		if (useGUI) {
 		    JOptionPane.showMessageDialog(frame, msg,
@@ -654,11 +621,6 @@ public class EVDisk {
 	    }
 
 	    try {
-		/*
-		System.out.println(" ... creating the"
-				   + ((type == null)? "": " " + type)
-				   + " file system");
-		*/
 		System.out.println(getmsg("creatingFS",
 					  ((type == null)? "ext4": type)));
 		pb = new ProcessBuilder(mkfs, "/dev/mapper/" + mapperName);
@@ -668,11 +630,6 @@ public class EVDisk {
 		    p = pb.start();
 		    p.waitFor();
 		    dataFile.delete();
-		    /*
-		    String msg = "Cannot create "
-			+ ((type == null || type.equals("ext4"))?
-			   "a": "an ext4") + " file system";
-		    */
 		    String msg = getmsg("noFS", ((type == null)? "ext4": type));
 		    if (useGUI) {
 			JOptionPane.showMessageDialog
@@ -684,13 +641,12 @@ public class EVDisk {
 		    System.exit(1);
 		}
 	    } finally {
-		System.out.println(" ... closing LUKS ");
+		System.out.println(getmsg("closingLUKS"));
 		pb = new ProcessBuilder("cryptsetup" , "close", mapperName);
 		pb.start();
 		p.waitFor();
 	    }
 	} finally {
-	    // System.out.println(" ... deallocating loopback device " + ld);
 	    System.out.println(getmsg("deallocatingLoopback", ld));
 	    pb = new ProcessBuilder("losetup", "-d", ld);
 	    p = pb.start();
@@ -826,7 +782,6 @@ public class EVDisk {
 	fc.setAcceptAllFileFilterUsed(false);
 	fc.setMultiSelectionEnabled(false);
 	fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-	// fc.setDialogTitle("Open EVdisk Directory");
 	fc.setDialogTitle(getmsg("OpenEVDiskDir"));
 	fc.setApproveButtonText(getmsg("Open"));
 	noTextFieldEditing(fc);
@@ -1217,21 +1172,12 @@ public class EVDisk {
 				    String targ = setupPane.getTargetDir();
 				    ok = true;
 				    if (fssz <= 0) {
-					/*
-					String msg =
-					    "Filesystem size not set.";
-					*/
 					String msg = getmsg("fsszNotSet");
 					JOptionPane.showMessageDialog
 					    (null, msg, getmsg("errTitle"),
 					     JOptionPane.ERROR_MESSAGE);
 					ok = false;
 				    } else if(units.equals("M") && fssz < 17) {
-					/*
-					String msg =
-					    "Filesystem size too small "
-					    + "(less than 17 MBytes).";
-					*/
 					String msg = getmsg("fsszTooSmall");
 					JOptionPane.showMessageDialog
 					    (null, msg, getmsg("errTitle"),
@@ -1239,10 +1185,6 @@ public class EVDisk {
 					ok = false;
 				    }
 				    if (targ == null) {
-					/*
-					String msg =
-					    "Target directory not set";
-					*/
 					String msg = getmsg("targetNotSet");
 					JOptionPane.showMessageDialog
 					    (null, msg, getmsg("errTitle"),
@@ -1275,7 +1217,6 @@ public class EVDisk {
 					}
 				    }
 				    if (keyids.size() == 0) {
-					// String msg = "No GPG keys selected";
 					String msg = getmsg("noGPGKeys");
 					JOptionPane.showMessageDialog
 					    (null, msg, getmsg("errTitle"),
@@ -1311,14 +1252,6 @@ public class EVDisk {
 
 			}
 		    });
-
-
-		System.out.println("---------");
-		for (String arg: cmds) {
-		    System.out.println(arg);
-		}
-
-
 		ProcessBuilder setupPB = new ProcessBuilder(cmds);
 		setupPB.redirectErrorStream(true);
 		Process setupP = setupPB.start();
@@ -1327,8 +1260,7 @@ public class EVDisk {
 					 (setupP.getInputStream(), "UTF-8"));
 
 		SwingUtilities.invokeLater(() -> {
-			frame =
-			    new JFrame("EVDisk - Directory Initialization");
+			frame = new JFrame(getmsg("EVDiskInit"));
 			console = new JTextArea(15, 40);
 			frame.add(console);
 			frame.pack();
@@ -1453,7 +1385,6 @@ public class EVDisk {
 		    ProcessBuilder.startPipeline(Arrays.asList(builders));
 
 		if (processes.get(0).waitFor() != 0) {
-		    // String msg = "gpg failed";
 		    String msg = getmsg("gpgFailed");
 		    if (useGUI) {
 			JOptionPane.showMessageDialog
@@ -1475,7 +1406,6 @@ public class EVDisk {
 		 }
 		 */
 		if (processes.get(1).waitFor() != 0) {
-		    // String msg ="sudo evdisk \"" + target +"\" failed";
 		    String msg = getmsg("sudoEvdiskFailed", target);
 		    if (useGUI) {
 			JOptionPane.showMessageDialog
@@ -1512,26 +1442,17 @@ public class EVDisk {
 
 	SwingUtilities.invokeLater(()-> {
 		JPanel loadPanel = new JPanel(new FlowLayout());
-		// JLabel loadLabel = new JLabel("Loading ...");
 		JLabel loadLabel = new JLabel(getmsg("Loading"));
 		loadPanel.add(loadLabel);
 		    
 		JPanel panel = new JPanel(new FlowLayout());
-		JLabel label = new
-		    JLabel("<html>Close when directory <br>"
-			   + " no longer needed</html>");
-		// JButton button = new JButton("Close");
+		JLabel label = new JLabel(getmsg("tryAgainLabel"));
 		JButton button = new JButton(getmsg("Close"));
 		panel.add(label);
 		panel.add(button);
 		button.addActionListener((event) -> {
 			try {
 			    if(!close(dataDir, ld, dataFile)) {
-				/*
-				String msg = "Close failed: "
-				    + dataDir.toString()
-				    + " busy";
-				*/
 				String msg = getmsg("closeFailed",
 						    dataDir.toString());
 				JOptionPane.showMessageDialog
@@ -1541,7 +1462,7 @@ public class EVDisk {
 				System.exit(0);
 			    }
 			} catch (Exception e) {
-			    String msg = "close failed";
+			    String msg = getmsg("closeFailedExit");
 			    if (useGUI) {
 				JOptionPane.showMessageDialog
 				    (frame, msg, getmsg("errTitle"),
@@ -1553,11 +1474,6 @@ public class EVDisk {
 			}
 		    });
 		JPanel closingPanel = new JPanel(new FlowLayout());
-		/*
-		JLabel closingLabel = new JLabel("Closing: "
-						 + targetDir.getName()
-						 + "/root is busy");
-		*/
 		JLabel closingLabel = new JLabel(getmsg("ClosingLabel",
 							targetDir.getName()));
 		closingPanel.add(closingLabel);
@@ -1576,7 +1492,6 @@ public class EVDisk {
 				try {
 				    timer.start();
 				} catch (Exception ee) {
-				    // String msg = "close failed";
 				    String msg = getmsg("closeFailedExit");
 				    if (useGUI) {
 					JOptionPane.showMessageDialog
@@ -1645,7 +1560,6 @@ public class EVDisk {
 	InputStream is = p.getInputStream();
 	if (p.waitFor() != 0) {
 	    dataFile.setReadOnly();
-	    // String msg = "Could not set up loopback device";
 	    String msg = getmsg("loopbackFailed");
 	    if (useGUI) {
 		JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
@@ -1661,7 +1575,6 @@ public class EVDisk {
 	ld = r.readLine();
 	if (ld == null) {
 	    dataFile.setReadOnly();
-	    // String msg = "No loopback device found";
 	    String msg = getmsg("noLoopbackFound");
 	    if (useGUI) {
 		JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
@@ -1686,7 +1599,6 @@ public class EVDisk {
 	    if (!mapperFile.exists()) {
 		System.err.println("evdisk: no mapper created");
 	    }
-	    // String msg = "'Cryptsetup open' failed";
 	    String msg = getmsg("cryptsetupOpen");
 	    if (useGUI) {
 		JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
@@ -1703,7 +1615,6 @@ public class EVDisk {
 	pb.inheritIO();
 	p = pb.start();
 	if (p.waitFor() != 0) {
-	    // String msg = "Mount failed";
 	    String msg = getmsg("mount");
 	    if (useGUI) {
 		JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
