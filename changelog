@@ -1,3 +1,13 @@
+evdisk (1.8) unstable; urgency=low
+  * The gpg -K option was replaced by gpg -K --with-colons
+    The change was made because the "--with-colons" option is supposed
+    to provide a stable syntax suitable for use in scripts as it is
+    easily parsed. Also, a configuration file was added so that the
+    dialog box brought up by "evdisk --create" will show additional
+    GPG user IDS, and so that one can preselect GPG user IDs.
+
+ --  Bill Zaumen <bzdev.org@gmail.com>  Fri, 27 Sep 2019 22:16:00 -0700
+
 evdisk (1.7) unstable; urgency=low
   * Messages and control labels/names, etc., where moved to the file
     EVDisk.properties.  This will enable localization based on any

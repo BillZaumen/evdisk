@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
+import java.util.HashSet;
 import java.util.Vector;
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -84,8 +85,71 @@ public class EVDisk {
 	ArrayList<String> keyDescrList = new ArrayList<>();
 	DefaultTableModel rtm;
 
+	private String fromCString(String string) {
+	    // only handle the 'colon' case
+	    return string.replace("\\3a", ":").replace("\\3A", ":");
+	}
+
+	private HashMap<String,Boolean> additions = new HashMap<>();
+
+	private void readConfig() throws IOException {
+	    File config = new File(System.getProperty("user.home"));
+	    config = new File(config, ".config/evdisk.conf");
+	    if (config.isFile() && config.canRead()) {
+		InputStream is = new FileInputStream(config);
+		LineNumberReader r =
+		    new LineNumberReader(new InputStreamReader(is, "UTF-8"));
+		String line;
+		try {
+		    while ((line = r.readLine()) != null) {
+			line = line.trim().toLowerCase();
+			if (line.length() == 0) {
+			    continue;
+			} else if (line.startsWith("#")) {
+			    continue;
+			}
+			line = line.replace(" ","").replace("\t", "");
+			if (line.matches("[+-][0-9a-f][0-9a-f][0-9a-f]+:.*")
+			    || line.matches("[+-].*:[0-9a-f][0-9a-f][0-9a-f]+")
+			    || (line.matches
+				("[+-].*:[0-9a-f][0-9a-f][0-9a-f]+:.*"))) {
+			    int lineno = r.getLineNumber();
+			    String msg = getmsg("ConfigSyntax",
+						config.getCanonicalPath(),
+						lineno);
+			    throw new IOException(msg);
+			}
+			line = line.replaceAll("^([+-])0x","$1")
+			    .replaceAll(":([0-9a-f]):", "0$1")
+			    .replaceAll("^([+-])([0-9a-f])$", "$10$2")
+			    .replaceAll("^([+-])([0-9a-f]):", "$10$2")
+			    .replaceAll(":([0-9a-f])$", "0$1")
+			    .replace(":","");
+			if (!line.matches("[-+][0-9a-f]+")) {
+			    int lineno = r.getLineNumber();
+			    String msg = getmsg("ConfigSyntax",
+						config.getCanonicalPath(),
+						lineno);
+			    throw new IOException(msg);
+			}
+			Boolean status = (line.startsWith("+"));
+			String fpr = line.substring(1);
+			additions.put(fpr, status);
+		    }
+		} catch (IOException eio) {
+		    JOptionPane.showMessageDialog
+			(null, eio.getMessage(), getmsg("errTitle"),
+			 JOptionPane.ERROR_MESSAGE);
+		    System.exit(1);
+		}
+	    }
+	}
+
+	private HashSet<String> fprSeen = new HashSet<>();
+
 	void initKeyLists() {
-	    ProcessBuilder pb = new ProcessBuilder("gpg", "-K");
+	    ProcessBuilder pb =
+		new ProcessBuilder("gpg", "-K", "--with-colons");
 	    try {
 		Process p = pb.start();
 		LineNumberReader r =
@@ -93,15 +157,49 @@ public class EVDisk {
 					 (p.getInputStream(), "UTF-8"));
 		String line;
 		String last = null;
+  // See http://www.mit.edu/afs.new/sipb/user/kolya/gpg/gnupg-1.2.1/doc/DETAILS
+  // for a description of the format used when the "--with-colons"
+  // option is present.
 		while ((line = r.readLine()) != null) {
-		    String pattern = "(uid[ \t]+[\\[][^\\]]*])";
-		    if (last != null && line.matches(pattern + ".*")) {
-			line = line.replaceFirst(pattern, "");
-			keyIDList.add(last.trim());
-			keyDescrList.add(line.trim());
+		    String[] fields = line.split(":");
+		    if (fields.length < 10) continue;
+		    if (fields[0] == null) fields[0] = "";
+		    if (fields[9] == null) fields[9] = "";
+		    if (fields[0].equals("fpr")) {
+			last = fields[9].trim().toLowerCase();
+			if (last.length() == 0) last = null;
+		    } else if (last != null && fields[0].equals("uid")) {
+			String uid = fromCString(fields[9].trim());
+			keyIDList.add(last);
+			keyDescrList.add(uid);
+			fprSeen.add(last);
 		    }
-		    if (line.trim().matches("[0-9A-Fa-f]+")) {
-			last = line;
+		}
+		readConfig();
+		pb = new ProcessBuilder("gpg", "-k", "--with-colons");
+		p = pb.start();
+		r = new LineNumberReader(new InputStreamReader
+					 (p.getInputStream(), "UTF-8"));
+		last = null;
+		while ((line = r.readLine()) != null) {
+		    String[] fields = line.split(":");
+		    if (fields.length < 10) continue;
+		    if (fields[0] == null) fields[0] = "";
+		    if (fields[9] == null) fields[9] = "";
+		    if (fields[0].equals("fpr")) {
+			last = fields[9].trim().toLowerCase();
+			if (last.length() == 0) {
+			    last = null;
+			} else {
+			    if (!additions.containsKey(last)
+				|| fprSeen.contains(last)) {
+				last = null;
+			    }
+			}
+		    } else if (last != null && fields[0].equals("uid")) {
+			String uid = fromCString(fields[9].trim());
+			keyIDList.add(last);
+			keyDescrList.add(uid);
 		    }
 		}
 	    } catch (IOException eio) {
@@ -238,7 +336,12 @@ public class EVDisk {
 		};
 	    int rtlen = keyIDList.size();
 	    for (int i = 0; i < rtlen; i++) {
-		Object row[] = {Boolean.FALSE, keyDescrList.get(i)};
+		Boolean status = Boolean.FALSE;
+		String fpr = keyIDList.get(i);
+		if (additions.containsKey(fpr)) {
+		    status = additions.get(fpr);
+		}
+		Object row[] = {status, keyDescrList.get(i)};
 		rtm.addRow(row);
 	    }
 

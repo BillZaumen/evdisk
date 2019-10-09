@@ -1,4 +1,4 @@
-VERSION = 1.7
+VERSION = 1.8
 SYS_BINDIR = /usr/bin
 SYS_MANDIR = /usr/share/man
 SYS_DOCDIR = /usr/share/doc/evdisk
@@ -41,6 +41,7 @@ evdisk.jar: EVDisk.java classes EVDisk.properties
 install: evdisk.jar
 	install -d $(BINDIR)
 	install -d $(MANDIR)/man1
+	install -d $(MANDIR)/man5
 	install -d $(DOCDIR)
 	install -d $(EVDISKDIR)
 	install -d $(APP_ICON_DIR)
@@ -48,8 +49,12 @@ install: evdisk.jar
 	install -m 0644 evdisk.jar $(EVDISKDIR)
 	install -m 0755 -T evdisk.sh $(BINDIR)/evdisk
 	sed -e s/VERSION/$(VERSION)/ evdisk.1 | gzip -n -9 > evdisk.1.gz
+	sed -e s/VERSION/$(VERSION)/ evdisk.conf.5 | \
+		gzip -n -9 > evdisk.conf.5.gz
 	install -m 0644 evdisk.1.gz $(MANDIR)/man1
+	install -m 0644 evdisk.conf.5.gz $(MANDIR)/man5
 	rm evdisk.1.gz
+	rm evdisk.conf.5.gz
 	install -m 0644 -T $(SOURCEICON) $(APP_ICON_DIR)/$(TARGETICON)
 	for i in $(ICON_WIDTHS) ; do \
 		install -d $(ICON_DIR)/$${i}x$${i}/$(APPS_DIR) ; \

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+java -Devdisk="./evdisk" -Dicondir="BUILD/usr/share/icons/hicolor" \
+     -jar evdisk.jar "$@"

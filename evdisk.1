@@ -1,4 +1,4 @@
-.TH EVDISK "1" "July 2019" "evdisk VERSION" "System Administration"
+.TH EVDISK "1" "Oct 2019" "evdisk VERSION" "System Administration"
 .SH NAME
 .PP
 evdisk \- create or temporarily mount an encrypted virtual file system
@@ -45,19 +45,24 @@ or by using the command
 .B evdisk\ \-\-create
 .PP
 with no other options. This will bring up a dialog box asking for
-the values for various options. The full
-.B \-\-create
-option is described below: when used as a command-line program, other
-options are needed with the
-.B \-\-create
-option. In either case, the LUKS key that is generated is 32
-characters long, consisting of random printable 7-bit ASCII
-characters, and is itself encrypted by GPG.  The command-line
-version will encrypt the LUKS key using any GPG key that GPG
-can use. When the graphical user interface is used, only those
-keys for which the user has a private key are available (both to keep
-the list of keys short and because this is what the user would typically
-use).
+the values for various options. The dialog box will contain  a list
+of "Recipients GPG Key IDs". Unless the user has created an EVDisk
+configuration file as described in
+.BR evdisk.conf (5),
+the user ids listed will be only those in the current user's key ring
+for which private keys are available.  If any additional keys are
+desired, those should be added to the configuration file using the
+format described in the
+.BR evdisk.conf (5)
+man page.  This is not necessary when the encrypted virtual file system
+is added using the command-line interface.  When the command-line
+interface is used, other options must be provided with the
+.B --create
+option as described below.
+.PP
+When an encrypted virtual file system is create, the LUKS key that is
+generated is 32 characters long, consisting of random printable 7-bit
+ASCII characters, and is itself encrypted by GPG.
 .PP
 Once the target directory
 .I TARGET
@@ -285,7 +290,7 @@ as such a third party will not even have the GPG key ring needed to decrypt
 the key file
 .BR key.gpg .
 If there are trusted individuals who should be able to read the disk,
-if they have GPG keys, those can be used to set up
+and if they have GPG keys, those GPG keys can be used to set up
 .B key.gpg
 so that these particular individuals can mount the disk's file system.
 While one could keep backup copies of everything in a safe deposit
@@ -336,21 +341,65 @@ disk with you and even if lost, someone would have to break GPG
 encryption to recover the key, and the key ring needed for decryption
 is not on the this disk.
 .PP
-As a second example, suppose you have a friend whom you would trust
-with access to your home directory, and who has a GPG key. The
+.PP
+While one can set up LUKS with encrypted keys (each decrypted with a
+pass phrase), it is then necessary to transfer the passphrase to the
+other individual, and that step is not necessary with EVDisk.  This is
+shown in a second example. Suppose an employee of a company wants to
+use EVDisk to store a backup copy of files kept on a laptop and that the
+company provides a public GPG key. The
 command
 .RS
 .PP
 .B
-evdisk \-s 8G \-r USER_GPG_ID \r FRIEND-GPG_ID \\
+evdisk \-s 8G \-r USER_GPG_ID \-r COMPANY-GPG_ID \\
+.br
 .B
 \ \ \ \ \-u \-\-create /media/USER/DISK/Backup
 .RE
+.PP
 will encrypt the LUKS key so that it can be used with either of the
-two GPG (private) keys.  While one can set up LUKS with encrypted
-keys (each decrypted with a pass phrase), it is then necessary to
-transfer the passphrase to the other individual, and that step is
-not necessary with EVDisk.
+two GPG (private) keys. Alternatively, one can put the fingerprint
+of the company's public key in the configuration file
+.BR ~/.config/evdisk.conf ,
+prefaced with a
+.B +
+if the key should be used by default and a
+.B -
+if the key should not be used by default. The key must be stored on
+the user's key ring. Then when the GUI is used to set up an encrypted
+virtual file system, the recipient's table includes the company's user
+id in textual form (this is looked up using the fingerprint as a
+key). When a configuration file contains the appropriate GPG
+fingerprint, one can use a desktop action to start EVDisk or
+alternative use the command
+.RS
+.PP
+.B
+evdisk \-\-create
+.RE
+.PP
+to start EVDisk in the appropriate mode.
+.PP
+The command
+.RS
+.PP
+.B
+gpg \-k \-\-fingerprint
+.RE
+.PP
+will print the public key ring, displaying fingerprints as a series of
+groups of four hexadecimal digits preceding the user id.  If the
+company's email address is
+.BR xxx@yyy.com ,
+then
+.RS
+.PP
+.B
+gpg \-k \-\-fingerprint xxx@yy.com
+.RE
+.PP
+will show the fingerprint for this email address alone.
 .SH FILES
 .PP
 .BI /dev/loop N
@@ -390,6 +439,13 @@ for normal termination.
 .TP
 1
 for abnormal termination.
+.SH FILES
+.B ~/.config/evdisk.conf
+.B /usr/bin/evdisk
+.B /usr/share/evdisk/evdisk.jar
+.B /usr/share/doc/evdisk/copyright
+.B /usr/share/doc/evdisk/changelog.gz
+.B /usr/share/doc/evdisk/changelog.Debian.gz
 .SH AUTHOR
 Written by Bill Zaumen
 .SH COPYRIGHT
@@ -400,6 +456,7 @@ This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law.
 .SH SEE ALSO
 .PP
+.BR evdisk.conf (5)
 .BR cryptsetup (1)
 .BR dd (1)
 .BR fallocate (1)
@@ -417,4 +474,4 @@ There is NO WARRANTY, to the extent permitted by law.
 \"  LocalWords:  unmount decrypt rsync mkdir GPGID exfat Zaumen GPLv
 \"  LocalWords:  GPL cryptsetup fallocate losetup umount reloadagent
 \"  LocalWords:  cramfs vfat chown mkfs SIGKILL loopback PID IB PopOS
-\"  LocalWords:  mlocate EVDisk EVDisk's decrypted
+\"  LocalWords:  mlocate EVDisk EVDisk's decrypted conf config

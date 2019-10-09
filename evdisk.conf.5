@@ -1,0 +1,118 @@
+.TH EVDISK "5" "Oct 2019" "evdisk VERSION" "System Administration"
+.SH NAME
+.PP
+evdisk.conf \- the EVDisk configuration file
+.SH DESCRIPTION
+The file
+.I ~/config/evdisk.conf
+provides GPG keys from gpg's public key ring that will add entries
+to the recipients list that appears in a dialog box after starting
+the command
+.B evdisk\ \-create
+or after choosing the corresponding desktop action.  The file contains
+a sequence of GPG fingerprints, prefaced by a the symbols
+.B +
+to indicate that a key should be selected by default or
+.B -
+to indicate that a key should not be selected by default.
+.PP
+GPG fingerprints can be found by running the command
+.IP
+.B gpg\ \-k\ \-\-fingerprint
+.PP
+or the command
+.IP
+.B gpg\ \-k\ \-\-with\-colons
+.PP
+With the former, the fingerprint appear as a series of 4-character
+hexadecimal digits separated by spaces. The following line starting
+with 'uid' provides the corresponding user ID in human-readable form.
+With the later, a line containing a fingerprint starts with the
+string
+.B fpr 
+and is followed by a series of colons, followed by a long hexadecimal
+number representing a fingerprint. The next line starting with
+.B uid
+contains the corresponding user ID and some additional data.  A
+fingerprint that is included in the configuration file must be one
+associated with a GPG key's user ID, not a subkey.
+.PP
+With no command-line arguments other than
+.BR \-\- create ,
+EVDisk will open a dialog box allowing the user to configure an EVDisk
+directory. This dialog box will contain a recipients table, and the
+entries specified by this configuration file will be added to the ones
+obtained by listing the user's GPG private keys. The rationale is to
+allow additional entries to be displayed without burdening the user by
+displaying a potentially very large number of keys that might be stored
+in the user's full key ring.
+By default, this configuration file does not exist. If needed, it should
+be created by each user.
+.SH SYNTAX
+Blank lines and lines starting with the character
+.B #
+are ignored. Whitespace within a line is also ignored (i.e. eliminated).
+After this filtering, if the first character of a line is
+.BR + ,
+the corresponding key will be selected by default (i.e., a checkbox in
+the recipient table shown by the GUI will be checked). If the first
+character of a line is
+.BR - ,
+the corresponding key will be unselected by default.
+The key itself is represented by its fingerprint, which is contained
+in the rest of the line. The format for a fingerprint is flexible:
+some preprocessing regularizes it. A leading sequence
+.B 0x
+or
+.B 0X
+in the fingerprint is removed (a
+.B 0x
+or
+.B 0X
+is optional). Colons are then removed after the following processing:
+if the fingerprint contains a single hexadecimal digit, that digit is
+prefaced with '0'; if the fingerprint starts with a single hexadecimal
+digit followed by a colon, that digit is prefaced with '0'; if the
+fingerprint ends with a colon followed by a single hexadecimal digit,
+that digit is prefaced with '0'; if the fingerprint contains a colon,
+followed by a single hexadecimal digit, followed by another colon,
+that digit is prefaced with a '0'.  It is preferable, however, to use
+the colon notation to separate bytes and for each byte to be
+represented by two digits.
+
+.SH EXAMPLES
+The following shows typical lines in the configuration file:
+.IP
+.B
++ AF01 8E02 AAAA BBBB FFFF  1234 AC32 3FGE FFEE AAAA
+.br
+.B
++ 0xAF018E02AAAABBBBFFFF1234AC323FGEFFEEAAAA
+.br
+.B
++ AF:01:8E:02:AA:AA:BB:BB:FF:FF:12:34:AC:32:3F:GE:FF:EE:AA:AA
+
+.SH FILES
+.B ~/.config/evdisk.conf
+.B /usr/bin/evdisk
+.B /usr/share/evdisk/evdisk.jar
+.B /usr/share/doc/evdisk/copyright
+.B /usr/share/doc/evdisk/changelog.gz
+.B /usr/share/doc/evdisk/changelog.Debian.gz
+.SH AUTHOR
+Written by Bill Zaumen
+.SH COPYRIGHT
+Copyright \(co 2019 Bill Zaumen.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
+.br
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+.SH SEE ALSO
+.BR evdisk (1)
+.BR gpg (1)
+
+
+\"  LocalWords:  EVDISK evdisk conf EVDisk GPG gpg's gpg uid fpr AAAA
+\"  LocalWords:  subkey Whitespace unselected preprocessing BBBB FFFF
+\"  LocalWords:  FGE FFEE br xAF AAAABBBBFFFF FGEFFEEAAAA config GPLv
+\"  LocalWords:  Zaumen GPL
