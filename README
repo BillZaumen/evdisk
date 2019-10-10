@@ -40,11 +40,35 @@ To compile and build a Debian package, just type the command
 This command will use the following programs: javac, jar, cp, sed,
 install, rm, inkscape, gzip, chmod, mkdir, dpkg-deb, and fakeroot.
 The program inkscape is run as a command-line program to create
-a series of PNG files containing icons of various sizes.
+a series of PNG files containing icons of various sizes. EVDisk can
+then be installed by running the command
+
+     sudo dpkg -i evdisk_VERSION_all.deb
+
+where VERSION is the current version number for the evdisk package.
 
 Every time a new version is created, the file Makefile should be
 updated to set the new VERSION variable and a new entry should be
 added to changelog, with a new date.
+
+To compile the program and create its JAR file, skipping other
+steps, type the command
+
+   make evdisk.jar
+
+The program can be tested using the shell script evdisk (The file evdisk.sh
+contains the version that will be actually installed).
+
+To install the program directly, type the command
+
+   sudo make install
+
+(The program inkscape must be installed first).  Then run the
+command
+
+    gtk-update-icon-cache --force /usr/share/icons/hicolor
+
+so that the EVDisk icons will be recognized.
 
                    --------- FILES -----------
 
@@ -72,8 +96,8 @@ The Git repository for EVDisk contains several files:
     evdisk.conf (this file is optional and it is up to the user to
     create it if desired).
 
-  * evdisk.desktop is the FreeDesktop desktop file supoted by Gnome
-    and other desktop environments.
+  * evdisk.desktop is the FreeDesktop desktop file supported by Gnome
+    and some other desktop environments.
 
   * EVDisk.java contains the source code.
 

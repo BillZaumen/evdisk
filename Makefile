@@ -81,7 +81,6 @@ debLog:
 		| sed -e "s/DATE/$(DATE)/" \
 		| gzip -n -9 > changelog.Debian.gz
 	install -m 0644 changelog.Debian.gz $(DOCDIR)
-	install -m 0644 changelog.Debian.gz $(DOCDIR)
 	rm changelog.Debian.gz
 
 $(DEB): deb/control copyright changelog deb/changelog.Debian \
