@@ -1,4 +1,4 @@
-evdist (1.6) unstable; urgency=low
+evdist (1.8) unstable; urgency=low
 
     * Debian maintainer and upstream author are identical.
       There are no Debian-specific changes.

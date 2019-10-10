@@ -1,0 +1,93 @@
+EVDisk is a simple utility for creating and mounting a LUKS file
+system.  The file system is stored in an ordinary
+file named 'encrypted' that will be mounted using a loopback device.
+Meanwhile the LUKS key, which is automatically generated, is
+stored in a file named key.gpg which (naturally) is encrypted using
+GPG. The file system will be mounted on a directory named 'root'.
+The two ordinary files and the root directory are all members of
+the same directory.  Normally other files will not be put in this
+directory.  EVDisk can be run from the command line or started
+by a desktop action.  After starting, a GUI will prompt for
+GPG passphrases and one's login password (sudo is needed) as
+required.  A window will appear that will allow one to unmount
+the file system by 'closing' it.
+
+The intended use case is for backups.  One can use EVDisk to set up
+a flash drive, and then use EVDisk to mount the encrypted file
+system, closing it after the backups are complete. If the backup disk
+is lost or stolen, trying to decrypt it would require either breaking
+GPG encryption or guessing a 32-character randomly generated LUKS key,
+and the key ring needed to decrypt the LUKS key is not on the backup
+disk.
+
+-------- Compilation ------------
+
+To compile and build a Debian package, just type the command
+
+   make
+
+This command will use the following programs: javac, jar, cp, sed,
+install, rm, inkscape, gzip, chmod, mkdir, dpkg-deb, and fakeroot.
+The program inkscape is run as a command-line program to create
+a series of PNG files containing icons of various sizes.
+
+Every time a new version is created, the file Makefile should be
+updated to set the new VERSION variable and a new entry should be
+added to changelog. In addition, changelog.Debian should be
+updated.
+
+--------- Files -----------
+
+The Git repository for EVDisk contains several files:
+
+  * changelog contains a log describing changes from one version
+    to the next
+
+  * changelog.Debian really just points to changelog and is there
+    because Debian installations expect it.
+
+  * control is the Debian control file.
+
+  * copyright is the standard copyright notice and contains licensing
+    information (GPLv3, or later)
+
+  * evdisk is a shell script that will start EVDisk from the command
+    line for testing
+
+  * evdisk.1 is the man page for the evdisk command
+
+  * evdisk.conf.5 is the man page for the EVDisk configuration file
+    evdisk.conf (this file is optional and it is up to the user to
+    create it if desired).
+
+  * evdisk.desktop is the Gnome desktop file
+
+  * EVDisk.java contains the source code.
+
+  * EVDisk.properties is used for internationalization and localization.
+    It represents a resource bundle. Additional ones are needed for
+    localization for languages other than English.
+
+  * evdisk.sh contains the shell script that will be installed in /usr/bin.
+
+  * evdisk.svg contains the EVDisk icon
+
+  * Makefile contains the file used by the 'make' command to build a package.
+
+  * postinst is a script needed by Debian packages during package
+    installation (it causes the icon cache to be updated).
+
+  * postrm is a script needed by Debian packages during package
+    removal (it causes the icon cache to be updated).
+
+The repository structure is flat - all the files are in the same
+directory - because there are only a handful of files for the whole
+project.
+
+--------------- TO DO ------------
+
+The main things missing are resource-bundle property files for
+localization.  While there is a default for English, ones for
+other languages are missing.  The default property file EVDisk.properties
+contains comments describing each property and how it is used in
+addition to the English text for that property.
