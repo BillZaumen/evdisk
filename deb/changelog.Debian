@@ -1,0 +1,6 @@
+evdist (VERSION) unstable; urgency=low
+
+    * Debian maintainer and upstream author are identical.
+      There are no Debian-specific changes.
+
+ -- Bill Zaumen <bill.zaumen@gmail.com>  DATE

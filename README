@@ -12,15 +12,26 @@ GPG passphrases and one's login password (sudo is needed) as
 required.  A window will appear that will allow one to unmount
 the file system by 'closing' it.
 
-The intended use case is for backups.  One can use EVDisk to set up
-a flash drive, and then use EVDisk to mount the encrypted file
-system, closing it after the backups are complete. If the backup disk
-is lost or stolen, trying to decrypt it would require either breaking
-GPG encryption or guessing a 32-character randomly generated LUKS key,
-and the key ring needed to decrypt the LUKS key is not on the backup
-disk.
+The intended use case is for backups.  One can use EVDisk to set up a
+flash drive, and then use EVDisk to mount the encrypted file system,
+closing it after the backups are complete. If the backup disk is lost
+or stolen, trying to decrypt it would require either breaking GPG
+encryption or guessing a 32-character randomly generated LUKS key, and
+the key ring needed to decrypt the LUKS key is should not be on the
+backup disk.
 
--------- Compilation ------------
+When EVDisk creates a key, it can allow multiple GPG keys to decrypt
+the key.  This is useful in a corporate setting where a company might
+need to recover data from a backup disk if the person using the disk
+is not available.
+
+                 ----------- COMPILATION ------------
+
+Before compilation, a recent version of the Java JDK should be
+installed and the programs inkscape and fakeroot should be installed
+(inkscape is used to create PNG files containing icons of various
+sizes starting from an SVG file).  The standard Debian package manager
+should be installed as well.
 
 To compile and build a Debian package, just type the command
 
@@ -33,26 +44,27 @@ a series of PNG files containing icons of various sizes.
 
 Every time a new version is created, the file Makefile should be
 updated to set the new VERSION variable and a new entry should be
-added to changelog. In addition, changelog.Debian should be
-updated.
+added to changelog, with a new date.
 
---------- Files -----------
+                   --------- FILES -----------
 
 The Git repository for EVDisk contains several files:
 
   * changelog contains a log describing changes from one version
-    to the next
+    to the next.  When changed, a new version number and date
+    should be added for each entry - none of that is done automatically.
 
-  * changelog.Debian really just points to changelog and is there
-    because Debian installations expect it.
+  * deb/changelog.Debian really just points to changelog and is there
+    because Debian installations expect it. The version number and date
+    are automatically generated from data in the makefile.
 
-  * control is the Debian control file.
+  * deb/control is the Debian control file.
 
   * copyright is the standard copyright notice and contains licensing
     information (GPLv3, or later)
 
   * evdisk is a shell script that will start EVDisk from the command
-    line for testing
+    line for testing.
 
   * evdisk.1 is the man page for the evdisk command
 
@@ -60,7 +72,8 @@ The Git repository for EVDisk contains several files:
     evdisk.conf (this file is optional and it is up to the user to
     create it if desired).
 
-  * evdisk.desktop is the Gnome desktop file
+  * evdisk.desktop is the FreeDesktop desktop file supoted by Gnome
+    and other desktop environments.
 
   * EVDisk.java contains the source code.
 
@@ -73,18 +86,21 @@ The Git repository for EVDisk contains several files:
   * evdisk.svg contains the EVDisk icon
 
   * Makefile contains the file used by the 'make' command to build a package.
+    For each new version, Makefile should be modified to set the new
+    version string.
 
-  * postinst is a script needed by Debian packages during package
+  * deb/postinst is a script needed by Debian packages during package
     installation (it causes the icon cache to be updated).
 
-  * postrm is a script needed by Debian packages during package
+  * deb/postrm is a script needed by Debian packages during package
     removal (it causes the icon cache to be updated).
 
-The repository structure is flat - all the files are in the same
-directory - because there are only a handful of files for the whole
-project.
+The source-code is in the top-level directory because it is essentially
+just a script, a single Java source-code file, and one or more property
+files for localization.
 
---------------- TO DO ------------
+
+                   --------------- TO DO ------------
 
 The main things missing are resource-bundle property files for
 localization.  While there is a default for English, ones for

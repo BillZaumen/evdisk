@@ -6,7 +6,7 @@ evdisk (1.8) unstable; urgency=low
     dialog box brought up by "evdisk --create" will show additional
     GPG user IDS, and so that one can preselect GPG user IDs.
 
- --  Bill Zaumen <bzdev.org@gmail.com>  Fri, 27 Sep 2019 22:16:00 -0700
+ --  Bill Zaumen <bill.zaumen@gmail.com>  Wed, 09 Oct 2019 18:08:56 -0700
 
 evdisk (1.7) unstable; urgency=low
   * Messages and control labels/names, etc., where moved to the file
@@ -14,7 +14,7 @@ evdisk (1.7) unstable; urgency=low
     supported locale, each of which will need its own properties files
     as described in the JDK documentation.
 
- --  Bill Zaumen <bzdev.org@gmail.com>  Fri, 27 Sep 2019 22:16:00 -0700
+ --  Bill Zaumen <bill.zaumen@gmail.com>  Fri, 27 Sep 2019 22:16:00 -0700
 
 evdisk (1.6) unstable; urgency=low
 
@@ -22,22 +22,22 @@ evdisk (1.6) unstable; urgency=low
     as a #! script (which the latest versions of Java allow the
     java interpretter to do).
 
- --  Bill Zaumen <bzdev.org@gmail.com>  Fri, 27 Sep 2019 22:16:00 -0700
+ --  Bill Zaumen <bill.zaumen@gmail.com>  Fri, 27 Sep 2019 22:16:00 -0700
 
 evdisk (1.5) unstable; urgency=low
 
   * Add GUI for setup.
 
- --  Bill Zaumen <bzdev.org@gmail.com>  Fri, 27 Sep 2019 22:16:00 -0700
+ --  Bill Zaumen <bill.zaumen@gmail.com>  Fri, 27 Sep 2019 22:16:00 -0700
 
 evdisk (1.4) unstable; urgency=low
 
   * First complete implementation.
 
- --  Bill Zaumen <bzdev.org@gmail.com>  Fri, 27 Sep 2019 22:16:00 -0700
+ --  Bill Zaumen <bill.zaumen@gmail.com>  Fri, 27 Sep 2019 22:16:00 -0700
 
 evdisk (1.1) unstable; urgency=low
 
   * Created the initial version and a man page.
 
- --  Bill Zaumen <bzdev.org@gmail.com>  Sun, 16 Apr 2019 20:00:00 -0700
+ --  Bill Zaumen <bill.zaumen@gmail.com>  Sun, 16 Apr 2019 20:00:00 -0700

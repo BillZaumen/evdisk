@@ -1,4 +1,7 @@
 VERSION = 1.8
+
+DATE = $(shell date -R)
+
 SYS_BINDIR = /usr/bin
 SYS_MANDIR = /usr/share/man
 SYS_DOCDIR = /usr/share/doc/evdisk
@@ -67,27 +70,33 @@ install: evdisk.jar
 	gzip -n -9 < changelog > changelog.gz
 	install -m 0644 changelog.gz $(DOCDIR)
 	rm changelog.gz
-	gzip -n -9 < changelog.Debian > changelog.Debian.gz
-	install -m 0644 changelog.Debian.gz $(DOCDIR)
 	install -m 0644 copyright $(DOCDIR)
-	rm changelog.Debian.gz
 
 DEB = evdisk_$(VERSION)_all.deb
 
 deb: $(DEB)
 
-$(DEB): control copyright changelog changelog.Debian postinst postrm \
+debLog:
+	sed -e s/VERSION/$(VERSION)/ deb/changelog.Debian \
+		| sed -e "s/DATE/$(DATE)/" \
+		| gzip -n -9 > changelog.Debian.gz
+	install -m 0644 changelog.Debian.gz $(DOCDIR)
+	install -m 0644 changelog.Debian.gz $(DOCDIR)
+	rm changelog.Debian.gz
+
+$(DEB): deb/control copyright changelog deb/changelog.Debian \
+		deb/postinst deb/postrm \
 		evdisk.jar \
 		evdisk.sh evdisk.1 evdisk.desktop evdisk.svg Makefile
 	mkdir -p BUILD
 	(cd BUILD ; rm -rf usr DEBIAN)
 	mkdir -p BUILD/DEBIAN
-	cp postinst BUILD/DEBIAN/postinst
+	cp deb/postinst BUILD/DEBIAN/postinst
 	chmod a+x BUILD/DEBIAN/postinst
-	cp postrm BUILD/DEBIAN/postrm
+	cp deb/postrm BUILD/DEBIAN/postrm
 	chmod a+x BUILD/DEBIAN/postrm
-	$(MAKE) install DESTDIR=BUILD
-	sed -e s/VERSION/$(VERSION)/ control > BUILD/DEBIAN/control
+	$(MAKE) install DESTDIR=BUILD debLog
+	sed -e s/VERSION/$(VERSION)/ deb/control > BUILD/DEBIAN/control
 	fakeroot dpkg-deb --build BUILD
 	mv BUILD.deb $(DEB)
 

@@ -1,6 +1,0 @@
-evdist (1.8) unstable; urgency=low
-
-    * Debian maintainer and upstream author are identical.
-      There are no Debian-specific changes.
-
- -- Bill Zaumen <bzdev.org@gmail.com>  Fri, 27 Sep 2019 22:16:00 -0700
