@@ -4,8 +4,8 @@
 evdisk.conf \- the EVDisk configuration file
 .SH DESCRIPTION
 The file
-.I ~/config/evdisk.conf
-provides GPG keys from gpg's public key ring that will add entries
+.I ~/.config/evdisk.conf
+provides GPG keys from the GPG public key ring that will add entries
 to the recipients list that appears in a dialog box after starting
 the command
 .B evdisk\ \-create
@@ -27,7 +27,7 @@ or the command
 With the former, the fingerprint appear as a series of 4-character
 hexadecimal digits separated by spaces. The following line starting
 with 'uid' provides the corresponding user ID in human-readable form.
-With the later, a line containing a fingerprint starts with the
+With the latter, a line containing a fingerprint starts with the
 string
 .B fpr 
 and is followed by a series of colons, followed by a long hexadecimal
@@ -35,17 +35,17 @@ number representing a fingerprint. The next line starting with
 .B uid
 contains the corresponding user ID and some additional data.  A
 fingerprint that is included in the configuration file must be one
-associated with a GPG key's user ID, not a subkey.
+associated with the user ID of a GPG key, not a subkey.
 .PP
 With no command-line arguments other than
 .BR \-\- create ,
 EVDisk will open a dialog box allowing the user to configure an EVDisk
 directory. This dialog box will contain a recipients table, and the
 entries specified by this configuration file will be added to the ones
-obtained by listing the user's GPG private keys. The rationale is to
+obtained by listing the GPG private keys for the user. The rationale is to
 allow additional entries to be displayed without burdening the user by
 displaying a potentially very large number of keys that might be stored
-in the user's full key ring.
+in the full key ring.
 By default, this configuration file does not exist. If needed, it should
 be created by each user.
 .SH SYNTAX
@@ -65,7 +65,7 @@ some preprocessing regularizes it. A leading sequence
 .B 0x
 or
 .B 0X
-in the fingerprint is removed (a
+in the fingerprint is removed (that is, a
 .B 0x
 or
 .B 0X
