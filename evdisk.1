@@ -10,8 +10,9 @@ evdisk \- create or temporarily mount an encrypted virtual file system
 .I TARGET
 .br
 .B
-evdisk [\-s|\-\-size]
+evdisk [-v] [\-s|\-\-size]
 .I SIZE\fB[M|G]\fI
+.BI [[--gpghome]\  GPGDIR\fB]\fI
 .B [\-r|\-\-recipient]
 .I GPG_KEYID
 .br
@@ -277,6 +278,17 @@ or if the corresponding target directory is owned by the user.
 .TQ
 .B \-\-help
 A summary of the command-line options will be printed.
+.TP
+.B -v
+This option turns on verbose mode. This will print error messages that
+might be created by various commands. It is used primarily for
+debugging.
+.TP
+.BI --homedir\   GPGDIR
+This options sets the directory that GPG uses to find its keyring.
+If not set the environment variable GNUPGHOME will be used and if this
+is not present, the default is the file .gnupg in the user's home
+directory.
 
 .SH USE CASE
 .PP

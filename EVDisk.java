@@ -48,6 +48,8 @@ public class EVDisk {
 	return String.format(msgBundle.getString(key), args);
     }
 
+    static boolean verbose = false;
+
     static class SetupPane extends JPanel {
 	static Vector<String> units = new Vector<>(2);
 	static {
@@ -533,7 +535,7 @@ public class EVDisk {
 
     private static void create(String targetDirName, int sz, boolean gigabytes,
 			       List<String> keyidList, String type,
-			       boolean fast)
+			       boolean fast, String gpgHome)
 	throws Exception
     {
 	File targetDir = new File(targetDirName);
@@ -590,7 +592,9 @@ public class EVDisk {
 				"bs=4K",
 				"count=" + count));
 
-
+	if (verbose) {
+	    pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+	}
 	Process p = pb.start();
 	if (p.waitFor() != 0) {
 	    String msg = getmsg("createEncryptedFailed");
@@ -607,6 +611,9 @@ public class EVDisk {
 	System.out.println(getmsg("loopback"));
 	pb = new ProcessBuilder("losetup", "-f", "--show"
 				, dataFile.getCanonicalPath());
+	if (verbose) {
+	    pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+	}
 	p = pb.start();
 	InputStream is = p.getInputStream();
 	if (p.waitFor() != 0) {
@@ -641,19 +648,47 @@ public class EVDisk {
 	    System.out.println(getmsg("creatingKeyInFile", key));
 	    List<String>cmds = new ArrayList<String>();
 	    cmds.add("gpg");
+	    if (gpgHome != null) {
+		cmds.add("--homedir");
+		cmds.add(gpgHome);
+	    }
 	    cmds.add("-e");
 	    cmds.add("--no-default-recipient");
 	    for (String keyid: keyidList) {
 		cmds.add("-r");
 		cmds.add(keyid);
 	    }
+
 	    pb = new ProcessBuilder(cmds);
 	    pb.redirectOutput(key);
+	    if (verbose) {
+		pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+	    }
 	    p = pb.start();
+	    if (!p.isAlive()) {
+		ProcessHandle.Info info = p.info();
+		java.util.Optional<String> optional;
+		optional = info.command();
+		if (optional.isPresent()) {
+		    System.err.print("        cmd: " + optional.get());
+		}
+		optional = info.commandLine();
+		if (optional.isPresent()) {
+		    System.err.println("        cmd line: " + optional.get());
+		}
+		optional = info.user();
+		if (optional.isPresent()) {
+		    System.err.println("        user: " + optional.get());
+		}
+	    }
 	    OutputStream os = p.getOutputStream();
+	    if (os == null) {
+		System.err.println("        no output stream to gpg");
+	    }
 	    Writer w = new OutputStreamWriter(os, "UTF-8");
 	    String pw = createKey();
 	    w.write(pw, 0, pw.length());
+	    w.flush();
 	    w.close();
 	    os.close();
 	    if (p.waitFor() != 0) {
@@ -673,6 +708,9 @@ public class EVDisk {
 	    System.out.println(getmsg("creatingLUKS"));
 	    pb = new ProcessBuilder("cryptsetup", "-d", "-", "luksFormat",
 				    ld);
+	    if (verbose) {
+		pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+	    }
 	    p = pb.start();
 	    os = p.getOutputStream();
 	    w = new OutputStreamWriter(os, "UTF-8");
@@ -700,6 +738,9 @@ public class EVDisk {
 	    System.out.println(getmsg("setupMapper"));
 	    pb = new ProcessBuilder("cryptsetup", "-d", "-",
 				    "open", ld, mapperName);
+	    if (verbose) {
+		pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+	    }
 	    p = pb.start();
 	    os = p.getOutputStream();
 	    w = new OutputStreamWriter(os, "UTF-8");
@@ -707,6 +748,7 @@ public class EVDisk {
 	    w.close();
 	    pw = null;
 	    os.close();
+
 	    if (p.waitFor() != 0) {
 		pb = new ProcessBuilder("losetup", "-d", ld);
 		p = pb.start();
@@ -727,6 +769,9 @@ public class EVDisk {
 		System.out.println(getmsg("creatingFS",
 					  ((type == null)? "ext4": type)));
 		pb = new ProcessBuilder(mkfs, "/dev/mapper/" + mapperName);
+		if (verbose) {
+		    pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+		}
 		p = pb.start();
 		if (p.waitFor() != 0) {
 		    pb = new ProcessBuilder("losetup", "-d", ld);
@@ -746,12 +791,18 @@ public class EVDisk {
 	    } finally {
 		System.out.println(getmsg("closingLUKS"));
 		pb = new ProcessBuilder("cryptsetup" , "close", mapperName);
+		if (verbose) {
+		    pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+		}
 		pb.start();
 		p.waitFor();
 	    }
 	} finally {
 	    System.out.println(getmsg("deallocatingLoopback", ld));
 	    pb = new ProcessBuilder("losetup", "-d", ld);
+	    if (verbose) {
+		pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+	    }
 	    p = pb.start();
 	    p.waitFor();
 	    dataFile.setReadOnly();
@@ -773,6 +824,9 @@ public class EVDisk {
 	Process p;
 	if (dataDir != null) {
 	    pb = new ProcessBuilder("umount", dataDir.getCanonicalPath());
+	    if (verbose) {
+		pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+	    }
 	    p = pb.start();
 	    int status = p.waitFor();
 	    if (status == BUSY) {
@@ -781,10 +835,16 @@ public class EVDisk {
 	    }
 	}
 	pb = new ProcessBuilder("cryptsetup", "close", mapperName);
+	if (verbose) {
+	    pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+	}
 	p = pb.start();
 	p.waitFor();
 	if (ld != null) {
 	    pb = new ProcessBuilder("losetup", "-d", ld);
+	    if (verbose) {
+		pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+	    }
 	    p = pb.start();
 	    p.waitFor();
 	}
@@ -960,6 +1020,9 @@ public class EVDisk {
 	    if (!mapper.matches("evdisk-[0-9]+")) continue;
 	    String fs = "/dev/mapper/" + mapper;
 	    pb = new ProcessBuilder("mount");
+	    if (verbose) {
+		pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+	    }
 	    p = pb.start();
 	    rd = new BufferedReader
 		(new InputStreamReader(p.getInputStream(), "UTF-8"));
@@ -1022,6 +1085,9 @@ public class EVDisk {
 	    p.waitFor();
 	}
 	pb = new ProcessBuilder("losetup", "-a", "-O", "NAME,BACK-FILE");
+	if (verbose) {
+	    pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+	}
 	p = pb.start();
 	rd = new BufferedReader
 	    (new InputStreamReader(p.getInputStream(), "UTF-8"));
@@ -1107,6 +1173,7 @@ public class EVDisk {
 	boolean szSeen = false;
 	boolean useen = false;
 
+	String gpgHome = null;
 
 	while (ind < argv.length && argv[ind].startsWith("-")) {
 	    if (argv[ind].equals("--recipient") || argv[ind].equals("-r")) {
@@ -1117,6 +1184,15 @@ public class EVDisk {
 		}
 		// keyid = argv[ind];
 		keyidList.add(argv[ind]);
+	    } else if (argv[ind].equals("--gpghome")) {
+		ind++;
+		if (ind == argv.length) {
+		    System.err.println("evdisk: too few arguments");
+		    System.exit(1);
+		}
+		gpgHome = argv[ind];
+	    } else if (argv[ind].equals("-v")) {
+		verbose = true;
 	    } else if (argv[ind].equals("--restartingWithSudo")) {
 		// this option is used internally
 		noSudo = false;
@@ -1246,6 +1322,15 @@ public class EVDisk {
 	    ind++;
 	}
 
+	if (gpgHome == null) {
+	    gpgHome = System.getenv("GNUPGHOME");
+	    if (gpgHome == null) {
+		gpgHome = (new File(new File(System.getProperty("user.home")),
+				    ".gnupg")).getCanonicalPath();
+	    }
+	}
+	System.out.println("gpgHome = " + gpgHome);
+
 	String target = null;
 
 	if (ind == argv.length) {
@@ -1327,6 +1412,9 @@ public class EVDisk {
 					ok = false;
 				    }
 				    cmds.add(evdisk);
+				    if (verbose) {
+					cmds.add("-v");
+				    }
 				    cmds.add("--evdiskUsesGUI");
 				    cmds.add("-s");
 				    cmds.add("" + fssz + units);
@@ -1371,13 +1459,16 @@ public class EVDisk {
 		    });
 		String nt = null;
 		while ((nt = r.readLine()) != null) {
-		    String text = console.getText();
-		    console.setText(text + nt + "\n");
-		    console.repaint();
+		    final String text = console.getText();
+		    final String nnt = nt;
+		    SwingUtilities.invokeLater(() -> {
+			    console.setText(text + nnt + "\n");
+			    console.repaint();
+			});
 		}
 		// provide some time to read the last console message
 		Thread.currentThread().sleep(3000L);
-		System.exit(setupP. waitFor());
+		System.exit(setupP.waitFor());
 	    }
 	    if (createFile) {
 		System.err.println("evdisk: missing target");
@@ -1423,6 +1514,11 @@ public class EVDisk {
 		    cmds.add("-k");
 		}
 		cmds.add(evdisk);
+		if (verbose) {
+		    cmds.add("-v");
+		}
+		cmds.add("--gpghome");
+		cmds.add(gpgHome);
 		cmds.add("--restartingWithSudo");
 		if (askpass != null) {
 		    cmds.add("--evdiskUsesGUI");
@@ -1451,7 +1547,7 @@ public class EVDisk {
 		p = pb.start();
 		System.exit(p.waitFor());
 	    } else {
-		create(target, sz, gigabytes, keyidList, type, fast);
+		create(target, sz, gigabytes, keyidList, type, fast, gpgHome);
 		System.exit(0);
 	    }
 	} else {

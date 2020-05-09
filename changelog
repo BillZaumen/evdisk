@@ -1,3 +1,17 @@
+evdisk (1.10) unstable; urgency=low
+ * Fixed a bug in which the gpg key ring could not be found due to running
+   as root (needed while creating the file system). Also added options to
+   set the GPG home directory, if desired, and added a verbose mode (-v
+   option) to show more of the output from programs the evdisk runs.
+
+ --  Bill Zaumen <bill.zaumen@gmail.com>  Sat, 07 Nov 2019 10:21:53 -0700
+
+evdisk (1.9) unstable; urgency=low
+ * Fixed a typo in evdisk.conf.5 and removed a duplicate line in the
+   makefile.
+
+ --  Bill Zaumen <bill.zaumen@gmail.com>  Sat, 07 Nov 2019 10:21:53 -0700
+
 evdisk (1.8) unstable; urgency=low
   * The gpg -K option was replaced by gpg -K --with-colons
     The change was made because the "--with-colons" option is supposed
