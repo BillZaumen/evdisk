@@ -1266,8 +1266,10 @@ public class EVDisk {
 		System.out.println("       by the -c option. Multiple"
 				   + " -r options may be");
 		System.out.println("      provided.");
+		System.out.println("   --gpghome provide the directory "
+				   + " for the GPG keyring.");
 		System.out.println("    -t or --type provides the file-system"
-				   + "  type. Valid");
+				   + " type. Valid");
 		System.out.println("       types can be found by running"
 				   + " the command");
 		System.out.println();
@@ -1296,6 +1298,8 @@ public class EVDisk {
 				   + " still in use");
 		System.out.println("        because the normal shutdown"
 				   + " procedure failed.");
+		System.out.println("    -v  indicates verbose mode (to provide"
+				   + " additional output).");
 		System.out.println();
 		System.out.println("The TARGET directory is the last argument "
 				   +"and is needed for");
@@ -1328,8 +1332,8 @@ public class EVDisk {
 		gpgHome = (new File(new File(System.getProperty("user.home")),
 				    ".gnupg")).getCanonicalPath();
 	    }
+	    System.out.println("... gpgHome = " + gpgHome);
 	}
-	System.out.println("gpgHome = " + gpgHome);
 
 	String target = null;
 
