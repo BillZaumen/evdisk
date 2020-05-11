@@ -609,8 +609,8 @@ public class EVDisk {
 
 
 	System.out.println(getmsg("loopback"));
-	pb = new ProcessBuilder("losetup", "-f", "--show"
-				, dataFile.getCanonicalPath());
+	pb = new ProcessBuilder("losetup", "-f", "--show",
+				dataFile.getCanonicalPath());
 	if (verbose) {
 	    pb.redirectError(ProcessBuilder.Redirect.INHERIT);
 	}
@@ -1084,7 +1084,8 @@ public class EVDisk {
 	    p = pb.start();
 	    p.waitFor();
 	}
-	pb = new ProcessBuilder("losetup", "-a", "-O", "NAME,BACK-FILE");
+	pb = new ProcessBuilder("losetup", "-a", "-O", "NAME,BACK-FILE",
+				"--noheadings");
 	if (verbose) {
 	    pb.redirectError(ProcessBuilder.Redirect.INHERIT);
 	}
@@ -1092,7 +1093,7 @@ public class EVDisk {
 	rd = new BufferedReader
 	    (new InputStreamReader(p.getInputStream(), "UTF-8"));
 	// first line contains a heading
-	line = rd.readLine();
+	// line = rd.readLine();
 	Map<String,String> map = new HashMap<String,String>();
 	while ((line = rd.readLine()) != null) {
 	    int ind = line.indexOf(" ");
@@ -1174,12 +1175,13 @@ public class EVDisk {
 	boolean useen = false;
 
 	String gpgHome = null;
-
+	boolean term = false;
+	boolean closeTerm = false;
 	while (ind < argv.length && argv[ind].startsWith("-")) {
 	    if (argv[ind].equals("--recipient") || argv[ind].equals("-r")) {
 		ind++;
 		if (ind == argv.length) {
-		    System.err.println("evdisk: too few arguments");
+		    System.err.println(getmsg("tooFewArgs"));
 		    System.exit(1);
 		}
 		// keyid = argv[ind];
@@ -1187,10 +1189,14 @@ public class EVDisk {
 	    } else if (argv[ind].equals("--gpghome")) {
 		ind++;
 		if (ind == argv.length) {
-		    System.err.println("evdisk: too few arguments");
+		    System.err.println(getmsg("tooFewArgs"));
 		    System.exit(1);
 		}
 		gpgHome = argv[ind];
+	    } else if (argv[ind].equals("--term")) {
+		term = true;
+	    } else if (argv[ind].equals("--close")) {
+		closeTerm = true;
 	    } else if (argv[ind].equals("-v")) {
 		verbose = true;
 	    } else if (argv[ind].equals("--restartingWithSudo")) {
@@ -1205,28 +1211,37 @@ public class EVDisk {
 		ind++;
 		szSeen = true;
 		if (ind == argv.length) {
-		    System.err.println("evdisk: too few arguments");
+		    System.err.println(getmsg("tooFewArgs"));
 		    System.exit(1);
 		}
 		szString = argv[ind].trim();
 		try {
 		    String arg = argv[ind];
 		    if (!arg.matches("[0-9]+[gGmM]")) {
+			System.err.println(getmsg("expectingSize", argv[ind]));
+			/*
 			System.err.println("Could not parse \"" + argv[ind]
 					   + "\" - expecting a size");
+			*/
 			System.exit(1);
 		    } else if (arg.endsWith("M") || arg.endsWith("m")) {
 			gigabytes = false;
 		    }
 		    sz = Integer.parseInt(arg.substring(0, arg.length()-1));
 		} catch (Exception el) {
+		    System.err.println(getmsg("expectingSize", argv[ind]));
+		    /*
 		    System.err.println("Could not parse \"" + argv[ind]
 				       + "\" - expecting a size");
+		    */
 		    System.exit(1);
 		}
 		if (sz == 0 || (gigabytes == false & sz < 17)) {
+		    System.err.println(getmsg("tooSmallFS"));
+		    /*
 		    System.err.println("File-system size likely to be "
 				       + "too small");
+		    */
 		}
 	    } else if (argv[ind].equals("--create")
 		       || argv[ind].equals("-c")) {
@@ -1234,11 +1249,12 @@ public class EVDisk {
 	    } else if (argv[ind].equals("--type") || argv[ind].equals("-t")) {
 		ind++;
 		if (ind == argv.length) {
-		    System.err.println("evdisk: too few arguments");
+		    System.err.println(getmsg("tooFewArgs"));
 		    System.exit(1);
 		}
 		type = argv[ind];
-		System.out.println("setting type to " + type);
+		System.out.println(getmsg("settingType", type));
+		// System.out.println("setting type to " + type);
 	    } else if (argv[ind].equals("--urandom")
 		       || argv[ind].equals("-u")) {
 		fast = false;
@@ -1246,6 +1262,8 @@ public class EVDisk {
 	    } else if (argv[ind].equals("--killAll")) {
 		killAll=true;
 	    } else if (argv[ind].equals("--help") || argv[ind].equals("-?")) {
+		System.out.println(getmsg("helpText"));
+		/*
 		System.out.println("evdisk [OPTION]* TARGET");
 		System.out.println("The options are defined as follows:");
 		System.out.println();
@@ -1318,9 +1336,11 @@ public class EVDisk {
 		System.out.println("evdisk will open a dialog box prompting"
 				   +" for the target file.");
 		System.out.println();
+		*/
 		System.exit(0);
 	    } else {
-		System.err.println("unrecognized option: " + argv[ind]);
+		System.err.println(getmsg("unrecognized", argv[ind]));
+		// System.err.println("unrecognized option: " + argv[ind]);
 		System.exit(1);
 	    }
 	    ind++;
@@ -1332,7 +1352,9 @@ public class EVDisk {
 		gpgHome = (new File(new File(System.getProperty("user.home")),
 				    ".gnupg")).getCanonicalPath();
 	    }
-	    System.out.println("... gpgHome = " + gpgHome);
+	    if (!closeTerm && term && noSudo) {
+		System.out.println("... gpgHome = " + gpgHome);
+	    }
 	}
 
 	String target = null;
@@ -1475,7 +1497,8 @@ public class EVDisk {
 		System.exit(setupP.waitFor());
 	    }
 	    if (createFile) {
-		System.err.println("evdisk: missing target");
+		System.err.println(getmsg("missingTarget"));
+		// "evdisk: missing target"
 		System.exit(1);
 	    } else if (killAll == false) {
 		target = getTarget();
@@ -1483,11 +1506,11 @@ public class EVDisk {
 		    // we canceled.
 		    System.exit(0);
 		}
-		askpass = findSSHAskPass();
+		askpass = term? null: findSSHAskPass();
 	    }
 	} else {
 	    if (createFile && useGUI) {
-		askpass = findSSHAskPass();
+		askpass = term? null: findSSHAskPass();
 	    }
 	    target = argv[ind];
 	}
@@ -1504,12 +1527,10 @@ public class EVDisk {
 
 	if (createFile) {
 	    if (keyidList.size() == 0) {
-		System.err.println("missing -r option");
+		System.err.println(getmsg("missingRoption"));
+		// System.err.println("missing -r option");
 		System.exit(1);
 	    }
-	}
-
-	if (createFile) {
 	    if (noSudo) {
 		List<String>cmds = new ArrayList<String>();
 		cmds.add("sudo");
@@ -1558,66 +1579,204 @@ public class EVDisk {
 	    targetDir = new File(target);
 	    dataFile = new File(targetDir, "encrypted");
 	    dataDir = new File(targetDir, "root");
+	    if(closeTerm) {
+		if (noSudo) {
+		    pb = new ProcessBuilder("sudo", evdisk, "--close",
+					    "--restartingWithSudo",
+					    target);
+		    pb.inheritIO();
+		    p = pb.start();
+		    System.exit(p.waitFor());
+		} else {
+		    pb = new ProcessBuilder("losetup", "-a", "--list",
+					    "--output", "NAME,BACK-FILE",
+					    "--noheadings");
+
+		    pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+		    p = pb.start();
+		    BufferedReader r = new BufferedReader
+			(new InputStreamReader(p.getInputStream(), "UTF-8"));
+		    String line = null;
+		    while ((line = r.readLine()) != null) {
+			String[] fields = line.trim().split("\\s+");
+			if (fields.length == 2) {
+			    if (fields[1].equals(dataFile.getCanonicalPath())) {
+				ld = fields[0];
+				break;
+			    }
+			}
+		    }
+		    int exitCode = p.waitFor();
+		    if (ld == null) {
+			if (exitCode != 0) {
+			    System.err.println(getmsg("nolistLoopback"));
+			    /*
+			    System.err.println("evisk: could not list "
+					       + "loopback devices");
+			    */
+			}
+			System.err.println(getmsg("noLoopbackFor",
+						  dataFile.getCanonicalPath()));
+			/*
+			System.err.println("evdisk: no loopback device for "
+					   + dataFile.getCanonicalPath());
+			*/
+			System.exit(1);
+		    } else {
+			// System.out.println("dataDir = " + dataDir);
+			// System.out.println("ld = " + ld);
+			// System.out.println("dataFile = " + dataFile);
+			if (close(dataDir, ld, dataFile)) {
+			    System.exit(0);
+			} else {
+			    System.err.println(getmsg("busy"));
+			    /*
+			    System.err.println("evdisk: encrypted file system "
+					       + "busy - try later");
+			    */
+			    System.exit(1);
+			}
+		    }
+		}
+	    }
+
 	    File key = new File(targetDir, "key.gpg");
 	    dataFile.setReadable(true);
 	    dataFile.setWritable(true);
 
 	    List<Process> processes = null;
+	    String lukspwd = null;
 	    if (noSudo) {
-		ProcessBuilder builders[] = {
-		    new ProcessBuilder("gpg", "-d", "-q",
-				       key.getCanonicalPath()),
-		    ((askpass == null)?
-		     (new ProcessBuilder("sudo", evdisk,
-					 "--restartingWithSudo", target)):
-		     (new ProcessBuilder("sudo", "-A", "-k", evdisk,
-					 "--evdiskUsesGUI",
-					 "--restartingWithSudo", target)))
-		};
+		ProcessBuilder builders[] = null;
+		if (askpass == null)  {
+		    Console console = System.console();
+		    final String gpgpassphrase
+			= new String(console.readPassword("GPG passphrase:"));
+		    builders = new ProcessBuilder []
+			{new ProcessBuilder("sudo", evdisk, "--term",
+					    "--gpghome", gpgHome,
+					    "--restartingWithSudo",
+					    target)};
+		    pb = new ProcessBuilder("gpg", "--batch", "-d", "-q",
+					    "--pinentry=loopback",
+					    "--passphrase-fd", "0",
+					    "-o", "-",
+					    key.getCanonicalPath());
+		    pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+		    p = pb.start();
+		    Thread thread = null;
+		    try {
+			OutputStream pos = p.getOutputStream();
+			thread = new Thread(() -> {
+				try {
+				    OutputStreamWriter w = new
+					OutputStreamWriter(pos, "UTF-8");
+				    w.write(gpgpassphrase, 0,
+					    gpgpassphrase.length());
+				    w.flush();
+				    w.close();
+				} catch (Exception et) {
+				    System.err.println(et.getMessage());
+				}
+			});
+			thread.start();
+		    } catch (Exception  ioe) {
+			System.err.println(ioe.getMessage());
+		    }
+		    InputStreamReader r = new
+			InputStreamReader(p.getInputStream(), "UTF-8");
+		    BufferedReader br = new BufferedReader(r, 33);
+		    lukspwd = br.readLine();
+		    thread.join();
+		    int exitCode = p.waitFor();
+		    if (exitCode != 0) {
+			System.err.println(getmsg("gpgExitcode", exitCode));
+			/*
+			System.err.println("gpg failed with exit code " +
+					   exitCode);
+			*/
+		    }
+		} else {
+		    builders = new ProcessBuilder[] {
+			new ProcessBuilder("gpg", "--homedir", gpgHome,
+					   "-d", "-q", key.getCanonicalPath()),
+			new ProcessBuilder("sudo", "-A", "-k",
+					   evdisk, "--evdiskUsesGUI",
+					   "--restartingWithSudo", target)
+		    };
+		}
+		/*
+		builders[] = {new ProcessBuilder("gpg", "-d", "-q",
+						 key.getCanonicalPath()),
+			      ((askpass == null)?
+			       (new ProcessBuilder("sudo", evdisk,
+						   "--restartingWithSudo",
+						   target)):
+			       (new ProcessBuilder("sudo", "-A", "-k", evdisk,
+						   "--evdiskUsesGUI",
+						   "--restartingWithSudo",
+						   target)))
+		    };
+		}
+		*/
 		if (askpass != null) {
 		    builders[0].redirectError(ProcessBuilder.Redirect.DISCARD);
 		    Map<String,String> env = builders[1].environment();
 		    if (!env.containsKey("SUDO_ASKPASS")) {
 			env.put("SUDO_ASKPASS", askpass);
 		    }
-		}
-		builders[1].redirectOutput(ProcessBuilder.Redirect.INHERIT);
-		builders[0].redirectError(ProcessBuilder.Redirect.INHERIT);
-		builders[1].redirectError(ProcessBuilder.Redirect.INHERIT);
-		processes =
-		    ProcessBuilder.startPipeline(Arrays.asList(builders));
+		    builders[1].redirectOutput(ProcessBuilder.Redirect.INHERIT);
+		    builders[0].redirectError(ProcessBuilder.Redirect.INHERIT);
+		    builders[1].redirectError(ProcessBuilder.Redirect.INHERIT);
+		    processes =
+			ProcessBuilder.startPipeline(Arrays.asList(builders));
 
-		if (processes.get(0).waitFor() != 0) {
-		    String msg = getmsg("gpgFailed");
-		    if (useGUI) {
-			JOptionPane.showMessageDialog
-			    (frame, msg, getmsg("errTitle"),
-			     JOptionPane.ERROR_MESSAGE);
-		    } else {
-			System.err.println("evdisk: " + msg);
+		    if (processes.get(0).waitFor() != 0) {
+			String msg = getmsg("gpgFailed");
+			if (useGUI) {
+			    JOptionPane.showMessageDialog
+				(frame, msg, getmsg("errTitle"),
+				 JOptionPane.ERROR_MESSAGE);
+			} else {
+			    System.err.println("evdisk: " + msg);
+			}
+			System.exit(1);
 		    }
-		    System.exit(1);
-		}/* else if (askpass != null) {
-		 // A test indicates that gpg-agent always remembers
-		 // one's passphrase and makes it available to every
-		 // terminal, and possibly all processes.
-		 pb = new ProcessBuilder("gpg-connect-agent", "reloadagent",
-		 "/bye");
-		 p = pb.start();
-		 p.waitFor();
-		 // no need to wait.
-		 }
-		 */
-		if (processes.get(1).waitFor() != 0) {
-		    String msg = getmsg("sudoEvdiskFailed", target);
-		    if (useGUI) {
-			JOptionPane.showMessageDialog
-			    (frame, msg, getmsg("errTitle"),
-			     JOptionPane.ERROR_MESSAGE);
-		    } else {
-			System.err.println("evdisk: " + msg);
+		    if (processes.get(1).waitFor() != 0) {
+			String msg = getmsg("sudoEvdiskFailed", target);
+			if (useGUI) {
+			    JOptionPane.showMessageDialog
+				(frame, msg, getmsg("errTitle"),
+				 JOptionPane.ERROR_MESSAGE);
+			} else {
+			    System.err.println("evdisk: " + msg);
+			}
+			System.exit(1);
 		    }
-		    System.exit(1);
+		}  else {
+		    builders[0].redirectOutput(ProcessBuilder.Redirect.INHERIT);
+		    builders[0].redirectError(ProcessBuilder.Redirect.INHERIT);
+		    processes =
+			ProcessBuilder.startPipeline(Arrays.asList(builders));
+		    OutputStreamWriter w = new OutputStreamWriter
+			(processes.get(0).getOutputStream(), "UTF-8");
+		    w.flush();
+		    w.write(lukspwd, 0, lukspwd.length());
+		    w.flush();
+		    w.close();
+		    Process ours = processes.get(0);
+
+		    if (processes.get(0).waitFor() != 0) {
+			String msg = getmsg("sudoEvdiskFailed", target);
+			if (useGUI) {
+			    JOptionPane.showMessageDialog
+				(frame, msg, getmsg("errTitle"),
+				 JOptionPane.ERROR_MESSAGE);
+			} else {
+			    System.err.println("evdisk: " + msg);
+			}
+			System.exit(1);
+		    }
 		}
 		System.exit(0);
 	    }
@@ -1643,7 +1802,7 @@ public class EVDisk {
 		}
 	});
 
-	SwingUtilities.invokeLater(()-> {
+	if (!term) SwingUtilities.invokeLater(()-> {
 		JPanel loadPanel = new JPanel(new FlowLayout());
 		JLabel loadLabel = new JLabel(getmsg("Loading"));
 		loadPanel.add(loadLabel);
@@ -1730,14 +1889,13 @@ public class EVDisk {
 			(WindowConstants.DO_NOTHING_ON_CLOSE);
 		    frame.setVisible(true);
 		} catch (Exception e) {
-		    System.err.println("could not start GUI");
+		    // System.err.println("could not start GUI");
 		    System.err.println(getmsg("noGUIStart"));
 		    System.exit(1);
 		}
 	    });
 
-
-	Runtime.getRuntime().addShutdownHook(new Thread(()-> {
+	if (!term) Runtime.getRuntime().addShutdownHook(new Thread(()-> {
 		    try {
 			boolean firstTime = true;
 			while (!close(dataDir, ld, dataFile)) {
@@ -1752,7 +1910,6 @@ public class EVDisk {
 			}
 		    } catch (Exception any)  {}
 	}));
-
 
 	dataFile.setReadable(true);
 	dataFile.setWritable(true);
@@ -1800,7 +1957,8 @@ public class EVDisk {
 	    p.waitFor();
 	    dataFile.setReadOnly();
 	    if (!mapperFile.exists()) {
-		System.err.println("evdisk: no mapper created");
+		System.err.println(getmsg("nomapper"));
+		//System.err.println("evdisk: no mapper created");
 	    }
 	    String msg = getmsg("cryptsetupOpen");
 	    if (useGUI) {
@@ -1832,8 +1990,19 @@ public class EVDisk {
 	    System.exit(1);
 	}
 
-	SwingUtilities.invokeLater(() -> {
-		topPanelCL.show(topPanel, "close");
-	    });
+	if (term) {
+	    System.err.println(getmsg("toClose", target));
+	    /*
+	    System.err.println("evdisk: to dismount the encrypted file system, "
+			       + "run the command\n"
+			       + "        evdisk --close "
+			       + target);
+	    */
+	    System.exit(0);
+	} else {
+	    SwingUtilities.invokeLater(() -> {
+		    topPanelCL.show(topPanel, "close");
+		});
+	}
     }
 }

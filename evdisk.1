@@ -289,7 +289,21 @@ This options sets the directory that GPG uses to find its keyring.
 If not set the environment variable GNUPGHOME will be used and if this
 is not present, the default is the file .gnupg in the user's home
 directory.
-
+.TP
+.B --term
+This option requests that
+.B evdisk
+prompt for GPG passphrases and sudo passwords via a terminal. A window
+allowing the encrypted file system to be unmounted will not be shown.
+This option is useful when evdisk is used via an SSH connection. When
+used with SSH, the GPG keyring must accessible from the remote machine.
+.TP
+.B --close
+This option will unmount an encrypted file system (it is named "close"
+to match the name on a button the GUI provides).  A
+.I TARGET
+argument must be provided (the same one used when the encrypted file
+system was opened/mounted).
 .SH USE CASE
 .PP
 The primary use case is one in which a user wishes to keep a backup
@@ -415,11 +429,13 @@ will show the fingerprint for this email address alone.
 .SH FILES
 .PP
 .BI /dev/loop N
+.br
 (where
 .I N
 is a small non-negative integer) provides a loopback device.
 .PP
 .BI /dev/mapper/evdisk\- PID
+.br
 (where
 .I PID
 is the process ID for the current
@@ -427,13 +443,16 @@ is the process ID for the current
 process) provides the mapper device used to decrypt a LUKS file system.
 .PP
 .IB TARGET /root
+.br
 is the mount point for the file system provided by
 .BR evdisk .
 .PP
 .IB TARGET /key.gpg
+.br
 contains a GPG encrypted LUKS key.
 .PP
 .IB TARGET /encrypted
+.br
 (where
 .I TARGET
 is the directory passed to
@@ -442,6 +461,32 @@ as its final argument or the directory selected using a dialog box)
 contains an ordinary file storing the data for the file system that
 .B evdisk
 will provide.
+.PP
+.B ~/.config/evdisk.conf
+.br
+contains the user's configuration file.
+.PP
+.B /usr/bin/evdisk
+.br
+is a shell script that will start evdisk.
+.PP
+.B /usr/share/evdisk/evdisk.jar
+.br
+is the evdisk JAR file.
+.PP
+.B /usr/share/doc/evdisk/copyright
+.br
+contains the copyright notice.
+.PP
+.br
+.B /usr/share/doc/evdisk/changelog.gz
+.br
+contains a change log.
+.PP
+.br
+.B /usr/share/doc/evdisk/changelog.Debian.gz
+.br
+contains a Debian-distribution change log.
 .SH EXIT STATUS
 .PP
 The exit codes are
@@ -451,13 +496,6 @@ for normal termination.
 .TP
 1
 for abnormal termination.
-.SH FILES
-.B ~/.config/evdisk.conf
-.B /usr/bin/evdisk
-.B /usr/share/evdisk/evdisk.jar
-.B /usr/share/doc/evdisk/copyright
-.B /usr/share/doc/evdisk/changelog.gz
-.B /usr/share/doc/evdisk/changelog.Debian.gz
 .SH AUTHOR
 Written by Bill Zaumen
 .SH COPYRIGHT
