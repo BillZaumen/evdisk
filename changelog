@@ -1,3 +1,8 @@
+evdisk (1.11.1) unstable; urgency=low Fri, 29 May 2020 21:40:12 -0700
+ * Fixed a typo in a message ("-- close" should have been "--close").
+
+ --  Bill Zaumen <bill.zaumen@gmail.com>
+
 evdisk (1.11) unstable; urgency=low
  * Added two more options, --term and --close that allow evdisk to be
    run without any use of a window system. This is useful when accessing

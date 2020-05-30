@@ -1,4 +1,4 @@
-VERSION = 1.11
+VERSION = 1.11.1
 
 DATE = $(shell date -R)
 
