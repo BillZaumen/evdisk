@@ -48,6 +48,37 @@ public class EVDisk {
 	return String.format(msgBundle.getString(key), args);
     }
 
+    static ResourceBundle manpageBundle = null;
+
+    static synchronized boolean printManPage() {
+	try {
+	    if (manpageBundle == null) {
+		manpageBundle = ResourceBundle.getBundle("manpage");
+	    }
+	    String location = manpageBundle.getString("location");
+	    InputStream is = EVDisk.class.getResourceAsStream(location);
+	    if (is == null) return false;
+	    Reader r = new InputStreamReader(is, "UTF-8");
+	    ProcessBuilder pb = new ProcessBuilder("less");
+	    pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+	    Process p = pb.start();
+	    OutputStream os = p.getOutputStream();
+	    Writer w = new OutputStreamWriter(os, "UTF-8");
+	    r.transferTo(w);
+	    w.flush();
+	    os.flush();
+	    w.close();
+	    if (p.waitFor() != 0) {
+		return false;
+	    }
+	    return true;
+	} catch (Exception e) {
+	    e.printStackTrace();
+	    return false;
+	}
+    }
+
+
     static boolean verbose = false;
 
     static class SetupPane extends JPanel {
@@ -1262,7 +1293,10 @@ public class EVDisk {
 	    } else if (argv[ind].equals("--killAll")) {
 		killAll=true;
 	    } else if (argv[ind].equals("--help") || argv[ind].equals("-?")) {
-		System.out.println(getmsg("helpText"));
+		if (printManPage() == false) {
+		    // fallback in case less is not there or something.
+		    System.out.println(getmsg("helpText"));
+		}
 		/*
 		System.out.println("evdisk [OPTION]* TARGET");
 		System.out.println("The options are defined as follows:");

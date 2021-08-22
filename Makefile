@@ -1,4 +1,5 @@
-VERSION = 1.11.1
+# VERSION = 1.11.1
+VERSION = 1.12.0
 
 DATE = $(shell date -R)
 
@@ -39,6 +40,8 @@ classes:
 evdisk.jar: EVDisk.java classes EVDisk.properties
 	javac -d classes EVDisk.java
 	cp EVDisk.properties classes
+	cp manpage.properties classes
+	nroff -man evdisk.1 > classes/manpage
 	jar cfe evdisk.jar EVDisk -C classes .
 
 install: evdisk.jar
@@ -61,7 +64,7 @@ install: evdisk.jar
 	install -m 0644 -T $(SOURCEICON) $(APP_ICON_DIR)/$(TARGETICON)
 	for i in $(ICON_WIDTHS) ; do \
 		install -d $(ICON_DIR)/$${i}x$${i}/$(APPS_DIR) ; \
-		inkscape -w $$i -e tmp.png $(SOURCEICON) ; \
+		inkscape -w $$i --export-filename=tmp.png $(SOURCEICON) ; \
 		install -m 0644 -T tmp.png \
 			$(ICON_DIR)/$${i}x$${i}/$(APPS_DIR)/$(TARGETICON_PNG); \
 		rm tmp.png ; \
