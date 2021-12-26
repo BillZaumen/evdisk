@@ -579,8 +579,11 @@ public class EVDisk {
 	if (!mkfsFile.canExecute()) {
 	    String msg = getmsg("unknownFSFormat");
 	    if (useGUI) {
-		JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
-					      JOptionPane.ERROR_MESSAGE);
+		SwingUtilities.invokeLater(() -> {
+			JOptionPane.showMessageDialog
+			    (frame, msg, getmsg("errTitle"),
+			     JOptionPane.ERROR_MESSAGE);
+		    });
 	    } else {
 		System.err.println("evdisk: " + msg);
 	    }
@@ -590,8 +593,11 @@ public class EVDisk {
 	if (!targetDir.exists()) {
 	    String msg = getmsg("noTargetDir");
 	    if (useGUI) {
-		JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
-					      JOptionPane.ERROR_MESSAGE);
+		SwingUtilities.invokeLater(() -> {
+			JOptionPane.showMessageDialog
+			    (frame, msg, getmsg("errTitle"),
+			     JOptionPane.ERROR_MESSAGE);
+		    });
 	    } else {
 		System.err.println("evdisk: " + msg);
 	    }
@@ -600,9 +606,12 @@ public class EVDisk {
 
 	if (dataFile.exists() || key.exists() || dataDir.exists()) {
 	    if (useGUI) {
-		String msg = getmsg("existingFiles");
-		JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
-					      JOptionPane.ERROR_MESSAGE);
+		SwingUtilities.invokeLater(() -> {
+			String msg = getmsg("existingFiles");
+			JOptionPane.showMessageDialog
+			    (frame, msg, getmsg("errTitle"),
+			     JOptionPane.ERROR_MESSAGE);
+		    });
 	    } else {
 		System.err.println(getmsg("existingFilesLong", targetDir));
 	    }
@@ -630,8 +639,11 @@ public class EVDisk {
 	if (p.waitFor() != 0) {
 	    String msg = getmsg("createEncryptedFailed");
 	    if (useGUI) {
-		JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
-					      JOptionPane.ERROR_MESSAGE);
+		SwingUtilities.invokeLater(() -> {
+			JOptionPane.showMessageDialog
+			    (frame, msg, getmsg("errTitle"),
+			     JOptionPane.ERROR_MESSAGE);
+		    });
 	    } else {
 		System.err.println("evdisk: " + msg);
 	    }
@@ -651,8 +663,11 @@ public class EVDisk {
 	    dataFile.delete();
 	    String msg = getmsg("loopbackFailed");
 	    if (useGUI) {
-		JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
-					      JOptionPane.ERROR_MESSAGE);
+		SwingUtilities.invokeLater(() -> {
+			JOptionPane.showMessageDialog
+			    (frame, msg, getmsg("errTitle"),
+			     JOptionPane.ERROR_MESSAGE);
+		    });
 	    } else {
 		System.err.println("evdisk: " + msg );
 	    }
@@ -667,8 +682,11 @@ public class EVDisk {
 	    dataFile.delete();
 	    String msg = getmsg("noLoopback");
 	    if (useGUI) {
-		JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
-					      JOptionPane.ERROR_MESSAGE);
+		SwingUtilities.invokeLater(() -> {
+			JOptionPane.showMessageDialog
+			    (frame, msg, getmsg("errTitle"),
+			     JOptionPane.ERROR_MESSAGE);
+		    });
 	    } else {
 		System.err.println("evdisk: " + msg);
 	    }
@@ -726,8 +744,11 @@ public class EVDisk {
 		setOwnerGroup(dataFile, targetDir);
 		String msg = getmsg("gpgFailed");
 		if (useGUI) {
-		    JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
-						  JOptionPane.ERROR_MESSAGE);
+		SwingUtilities.invokeLater(() -> {
+			JOptionPane.showMessageDialog
+			    (frame, msg, getmsg("errTitle"),
+			     JOptionPane.ERROR_MESSAGE);
+		    });
 		} else {
 		    System.err.println("evdisk: " + msg);
 		}
@@ -757,9 +778,11 @@ public class EVDisk {
 		dataFile.delete();
 		String msg = getmsg("formattingLUKSFailed");
 		if (useGUI) {
-		    JOptionPane.showMessageDialog(frame, msg,
-						  getmsg("errTitle"),
-						  JOptionPane.ERROR_MESSAGE);
+		    SwingUtilities.invokeLater(() -> {
+			    JOptionPane.showMessageDialog
+				(frame, msg, getmsg("errTitle"),
+				 JOptionPane.ERROR_MESSAGE);
+			});
 		} else {
 		    System.out.println("evdisk: " + msg);
 		}
@@ -787,9 +810,11 @@ public class EVDisk {
 		dataFile.delete();
 		String msg = getmsg("setupMapperFailed");
 		if (useGUI) {
-		    JOptionPane.showMessageDialog(frame, msg,
-						  getmsg("errTitle"),
-						  JOptionPane.ERROR_MESSAGE);
+		SwingUtilities.invokeLater(() -> {
+			JOptionPane.showMessageDialog
+			    (frame, msg, getmsg("errTitle"),
+			     JOptionPane.ERROR_MESSAGE);
+		    });
 		} else {
 		    System.err.println("evdisk: " + msg);
 		}
@@ -811,9 +836,11 @@ public class EVDisk {
 		    dataFile.delete();
 		    String msg = getmsg("noFS", ((type == null)? "ext4": type));
 		    if (useGUI) {
-			JOptionPane.showMessageDialog
-			    (frame, msg, getmsg("errTitle"),
-			     JOptionPane.ERROR_MESSAGE);
+			SwingUtilities.invokeLater(() -> {
+				JOptionPane.showMessageDialog
+				    (frame, msg, getmsg("errTitle"),
+				     JOptionPane.ERROR_MESSAGE);
+			    });
 		    } else {
 			System.err.println("evdisk: " + msg);
 		    }
@@ -1189,6 +1216,52 @@ public class EVDisk {
 
     static JTextArea console;
 
+    private static boolean darkmode = false;
+    private static boolean modeChanged() {
+	// Color c = frame.getContentPane().getBackground();
+	Color c = (Color) UIManager.get("Panel.background");
+	boolean dm =
+	    ((c.getRed() < 128 && c.getGreen() < 128 && c.getBlue() < 128));
+	try {
+	    return (dm != darkmode);
+	} finally {
+	    darkmode = dm;
+	}
+    }
+    static JFrame testFrame = null;
+    static void createTestFrameIfNeeded() {
+	if (testFrame != null) return;
+	testFrame = new JFrame();
+	try {
+	    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+	    /*
+	     * Some look and feels do not set this to something that
+	     * is easy to see.
+	     */
+	    UIManager.put("TextField.caretForeground",
+			  UIManager.get("TextField.foreground"));
+	    UIManager.put("TextArea.caretForeground",
+			  UIManager.get("TextArea.foreground"));
+	    UIManager.put("EditorPane.caretForeground",
+			  UIManager.get("EditorPane.foreground"));
+	    modeChanged();
+	    frame.getContentPane().addPropertyChangeListener(evnt -> {
+		    if (modeChanged()) {
+			UIManager.put("TextField.caretForeground",
+				      UIManager.get("TextField.foreground"));
+			UIManager.put("TextArea.caretForeground",
+				      UIManager.get("TextArea.foreground"));
+			UIManager.put("EditorPane.caretForeground",
+				      UIManager.get("EditorPane.foreground"));
+		    }
+		});
+	} catch (Exception e){};
+    }
+
+    // used in main but inside a lambda expression for invokeAndWait
+    static String target = null;
+
+
     public static void main(String argv[]) throws Exception {
 	int ind = 0;
 	boolean createFile = false;
@@ -1391,13 +1464,14 @@ public class EVDisk {
 	    }
 	}
 
-	String target = null;
-
 	if (ind == argv.length) {
 	    if (createFile && keyidList.size() == 0 && szSeen == false
 		&& useen == false && type == null) {
 		// we only have the -c or --create option and no target,
 		// so use a GUI to initialize an EVDisk directory
+		SwingUtilities.invokeLater(() -> {
+			createTestFrameIfNeeded();
+		    });
 		final ArrayList<String> cmds = new ArrayList<>();
 		SwingUtilities.invokeAndWait(() -> {
 			try {
@@ -1535,7 +1609,19 @@ public class EVDisk {
 		// "evdisk: missing target"
 		System.exit(1);
 	    } else if (killAll == false) {
-		target = getTarget();
+		SwingUtilities.invokeAndWait(() -> {
+			createTestFrameIfNeeded();
+			try {
+			    target = getTarget();
+			} catch (IOException e) {
+			    String msg = e.getClass().getName()
+				+ ": " + e.getMessage();
+			    JOptionPane.showMessageDialog
+				(null, msg, getmsg("errTitle"),
+				 JOptionPane.ERROR_MESSAGE);
+			    System.exit(1);
+			}
+		    });
 		if (target == null) {
 		    // we canceled.
 		    System.exit(0);
@@ -1554,7 +1640,6 @@ public class EVDisk {
 	    killAll();
 	    System.exit(0);
 	}
-
 
 	ProcessBuilder pb = null;
 	Process p = null;
@@ -1837,6 +1922,7 @@ public class EVDisk {
 	});
 
 	if (!term) SwingUtilities.invokeLater(()-> {
+		createTestFrameIfNeeded();
 		JPanel loadPanel = new JPanel(new FlowLayout());
 		JLabel loadLabel = new JLabel(getmsg("Loading"));
 		loadPanel.add(loadLabel);
@@ -1956,8 +2042,11 @@ public class EVDisk {
 	    dataFile.setReadOnly();
 	    String msg = getmsg("loopbackFailed");
 	    if (useGUI) {
-		JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
-					      JOptionPane.ERROR_MESSAGE);
+		SwingUtilities.invokeLater(() -> {
+			JOptionPane.showMessageDialog
+			    (frame, msg, getmsg("errTitle"),
+			     JOptionPane.ERROR_MESSAGE);
+		    });
 	    } else {
 		System.err.println("evdisk: " + msg);
 	    }
@@ -1971,8 +2060,11 @@ public class EVDisk {
 	    dataFile.setReadOnly();
 	    String msg = getmsg("noLoopbackFound");
 	    if (useGUI) {
-		JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
-					      JOptionPane.ERROR_MESSAGE);
+		SwingUtilities.invokeLater(() -> {
+			JOptionPane.showMessageDialog
+			    (frame, msg, getmsg("errTitle"),
+			     JOptionPane.ERROR_MESSAGE);
+		    });
 	    } else {
 		System.err.println("evdisk: " + msg);
 	    }
@@ -1996,8 +2088,11 @@ public class EVDisk {
 	    }
 	    String msg = getmsg("cryptsetupOpen");
 	    if (useGUI) {
-		JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
-					      JOptionPane.ERROR_MESSAGE);
+		SwingUtilities.invokeLater(() -> {
+			JOptionPane.showMessageDialog
+			    (frame, msg, getmsg("errTitle"),
+			     JOptionPane.ERROR_MESSAGE);
+		    });
 	    } else {
 		System.err.println("evdisk: " + msg);
 	    }
@@ -2012,8 +2107,11 @@ public class EVDisk {
 	if (p.waitFor() != 0) {
 	    String msg = getmsg("mount");
 	    if (useGUI) {
-		JOptionPane.showMessageDialog(frame, msg, getmsg("errTitle"),
-					      JOptionPane.ERROR_MESSAGE);
+		SwingUtilities.invokeLater(() -> {
+			JOptionPane.showMessageDialog
+			    (frame, msg, getmsg("errTitle"),
+			     JOptionPane.ERROR_MESSAGE);
+		    });
 	    } else {
 		System.err.println("evdisk: " + msg);
 	    }
