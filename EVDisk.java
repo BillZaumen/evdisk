@@ -1231,7 +1231,6 @@ public class EVDisk {
     static JFrame testFrame = null;
     static void createTestFrameIfNeeded() {
 	if (testFrame != null) return;
-	testFrame = new JFrame();
 	try {
 	    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 	    /*
@@ -1244,16 +1243,44 @@ public class EVDisk {
 			  UIManager.get("TextArea.foreground"));
 	    UIManager.put("EditorPane.caretForeground",
 			  UIManager.get("EditorPane.foreground"));
-	    modeChanged();
-	    frame.getContentPane().addPropertyChangeListener(evnt -> {
-		    if (modeChanged()) {
-			UIManager.put("TextField.caretForeground",
-				      UIManager.get("TextField.foreground"));
-			UIManager.put("TextArea.caretForeground",
-				      UIManager.get("TextArea.foreground"));
-			UIManager.put("EditorPane.caretForeground",
-				      UIManager.get("EditorPane.foreground"));
-		    }
+	    SwingUtilities.invokeLater(() -> {
+		    try {
+			testFrame = new JFrame();
+			Toolkit.getDefaultToolkit().sync();
+		    } catch (Exception ee) {}
+		});
+	    SwingUtilities.invokeLater(() -> {
+		    try {
+			Toolkit.getDefaultToolkit().sync();
+		    } catch (Exception e) {}
+		});
+	    SwingUtilities.invokeAndWait(() -> {
+		    try {
+			Toolkit.getDefaultToolkit().sync();
+		    } catch (Exception e) {}
+		    modeChanged();
+		    testFrame.getContentPane()
+			.addPropertyChangeListener(evnt -> {
+				if (modeChanged()) {
+				    UIManager
+					.put("TextField.caretForeground",
+					     UIManager
+					     .get("TextField.foreground"));
+				    UIManager
+					.put("TextArea.caretForeground",
+					     UIManager
+					     .get("TextArea.foreground"));
+				    UIManager
+					.put("EditorPane.caretForeground",
+					     UIManager
+					     .get("EditorPane.foreground"));
+				}
+			    });
+		});
+	    SwingUtilities.invokeLater(() -> {
+		    try {
+			Toolkit.getDefaultToolkit().sync();
+		    } catch (Exception e) {}
 		});
 	} catch (Exception e){};
     }
@@ -1469,9 +1496,7 @@ public class EVDisk {
 		&& useen == false && type == null) {
 		// we only have the -c or --create option and no target,
 		// so use a GUI to initialize an EVDisk directory
-		SwingUtilities.invokeLater(() -> {
-			createTestFrameIfNeeded();
-		    });
+		createTestFrameIfNeeded();
 		final ArrayList<String> cmds = new ArrayList<>();
 		SwingUtilities.invokeAndWait(() -> {
 			try {
@@ -1609,8 +1634,8 @@ public class EVDisk {
 		// "evdisk: missing target"
 		System.exit(1);
 	    } else if (killAll == false) {
+		createTestFrameIfNeeded();
 		SwingUtilities.invokeAndWait(() -> {
-			createTestFrameIfNeeded();
 			try {
 			    target = getTarget();
 			} catch (IOException e) {
@@ -1920,9 +1945,9 @@ public class EVDisk {
 		    System.exit(1);
 		}
 	});
-
-	if (!term) SwingUtilities.invokeLater(()-> {
-		createTestFrameIfNeeded();
+	if (!term) {
+	    createTestFrameIfNeeded();
+	    SwingUtilities.invokeLater(()-> {
 		JPanel loadPanel = new JPanel(new FlowLayout());
 		JLabel loadLabel = new JLabel(getmsg("Loading"));
 		loadPanel.add(loadLabel);
@@ -2014,7 +2039,7 @@ public class EVDisk {
 		    System.exit(1);
 		}
 	    });
-
+	}
 	if (!term) Runtime.getRuntime().addShutdownHook(new Thread(()-> {
 		    try {
 			boolean firstTime = true;
