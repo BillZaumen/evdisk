@@ -34,6 +34,9 @@ ICON_WIDTHS = 16 20 22 24 32 36 48 64 72 96 128 192 256
 
 all: deb
 
+version:
+	@echo $VERSION
+
 classes:
 	mkdir -p classes
 
