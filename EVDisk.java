@@ -1231,6 +1231,10 @@ public class EVDisk {
     static JFrame testFrame = null;
     static void createTestFrameIfNeeded() {
 	if (testFrame != null) return;
+	if (GraphicsEnvironment.isHeadless()) {
+	    System.err.println(getmsg("headless"));
+	    System.exit(1);
+	}
 	try {
 	    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 	    /*
@@ -1336,6 +1340,10 @@ public class EVDisk {
 	    } else if (argv[ind].equals("--evdiskUsesGUI")) {
 		// This is an internal options so it is not described
 		// in the manual page.
+		if (GraphicsEnvironment.isHeadless()) {
+		    System.err.println(getmsg("headless"));
+		    System.exit(1);
+		}
 		useGUI = true;
 	    } else if (argv[ind].equals("--size")
 		       || argv[ind].equals("-s")) {

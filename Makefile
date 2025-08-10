@@ -1,5 +1,5 @@
 # VERSION = 1.11.1
-VERSION = 1.13.1
+VERSION = 1.13.2
 
 DATE = $(shell date -R)
 
@@ -41,7 +41,7 @@ classes:
 	mkdir -p classes
 
 evdisk.jar: EVDisk.java classes EVDisk.properties
-	javac -d classes EVDisk.java
+	javac --release 11  -d classes EVDisk.java
 	cp EVDisk.properties classes
 	cp manpage.properties classes
 	nroff -man evdisk.1 > classes/manpage
